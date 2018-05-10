@@ -1,28 +1,30 @@
-def test(a, b, c):
+import time
+from enum import Enum
+
+class TriangleType(Enum):
+    INVALID, VALID = 0, 1
+
+def classify_triangle(a, b, c):
+    # Sort the sides so that a <= b <= c
     if a > b:
-        t = a
+        tmp = a
         a = b
-        b = t
+        b = tmp
+
     if a > c:
-        t = a
+        tmp = a
         a = c
-        c = t
+        c = tmp
+
     if b > c:
-        t = b
+        tmp = b
         b = c
-        c = t
+        c = tmp
+    
+    if a < 0:
+        return TriangleType.INVALID
 
     if a + b <= c:
-        ty = 0
+        return TriangleType.INVALID
     else:
-        ty = 1
-        if a == b:
-            if b == c:
-                ty = 3
-        else:
-            if a == b:
-                ty = 4
-            elif b == c:
-                ty = 4
-    
-    return ty
+        return TriangleType.VALID
