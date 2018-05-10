@@ -1,8 +1,10 @@
 import time
 from enum import Enum
 
+
 class TriangleType(Enum):
-    INVALID, VALID = 0, 1
+    INVALID, EQUALATERAL, ISOCELES, SCALENE = 0, 1, 2, 3
+
 
 def classify_triangle(a, b, c):
     # Sort the sides so that a <= b <= c
@@ -20,11 +22,12 @@ def classify_triangle(a, b, c):
         tmp = b
         b = c
         c = tmp
-    
-    if a < 0:
-        return TriangleType.INVALID
 
     if a + b <= c:
         return TriangleType.INVALID
+    elif (a == b and b == c) and c == a:
+        return TriangleType.EQUALATERAL
+    elif a == b or b == c:
+        return TriangleType.ISOCELES
     else:
-        return TriangleType.VALID
+        return TriangleType.SCALENE

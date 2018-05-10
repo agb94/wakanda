@@ -76,7 +76,7 @@ if __name__ == "__main__":
     target_module = importlib.import_module(inst_sourcefile.rstrip('.py').replace('/', '.'))
     
     print (total_branches)
-    cov_report = run(target_module.__dict__[args.function], [1,2,3], total_branches)
+    cov_report = run(target_module.__dict__[args.function], [3,3,2], total_branches)
     print (total_branches)
     
     cannot_cover=set()

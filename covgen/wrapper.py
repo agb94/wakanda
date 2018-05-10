@@ -29,6 +29,17 @@ def comparison(bid, op, a, b):
         assert False
     return result
 
+def boolop(bid, op, values):
+    result = values[0]
+    for i in range(1, len(values)):
+        if op == 'And':
+            result = result and values[i]
+        elif op == 'Or':
+            result = result or values[i]
+    print (values)
+    write_cov_report(bid, result, op, 0, 0)
+    return result
+
 def value(bid, v):
     result = bool(v)
     write_cov_report(bid, result, 'V', -abs(v), abs(v))
