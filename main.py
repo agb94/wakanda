@@ -74,3 +74,12 @@ if __name__ == "__main__":
     function_node, total_branches = profiler.instrument(args.sourcefile, inst_sourcefile, args.function)
     cfg = get_cfg(function_node, profiler.branches)
     target_module = importlib.import_module(inst_sourcefile.rstrip('.py').replace('/', '.'))
+    
+    print (total_branches)
+    cov_report = run(target_module.__dict__[args.function], [1,2,3], total_branches)
+    print (total_branches)
+    
+    cannot_cover=set()
+    target_branch = next_target(total_branches, cannot_cover)
+    fitness = get_fitness(cfg, target_branch, cov_report)
+    print (fitness)

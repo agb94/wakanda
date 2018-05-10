@@ -16,4 +16,4 @@ def get_fitness(cfg, target_branch, cov_result):
                 break
     else:
         branch_distance = 0
-    return -approach_level, -1+(1.001)**(-branch_distance)
+    return approach_level, 1-(1.001)**(-branch_distance)
