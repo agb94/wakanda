@@ -9,14 +9,15 @@ def run(function, input_value, total_branches, timeout=5):
     import signal
 
     class Branch:
-        def __init__(self, branch_id: int, predicate_result: bool, op: str, branch_distance: int):
+        def __init__(self, branch_id: int, depth: int, predicate_result: bool, op: str, branch_distance: int):
             self.id = branch_id
+            self.depth = depth
             self.predicate_result = predicate_result
             self.op = op
             self.branch_distance = branch_distance
         
         def __str__(self):
-            return "{}\t{}\t{}\t{}".format(self.id, self.predicate_result, self.op, self.branch_distance)
+            return "{}\t{}\t{}\t{}\t{}".format(self.id, self.depth, self.predicate_result, self.op, self.branch_distance)
 
         def to_tuple(self):
             return (self.id, self.predicate_result)
@@ -24,7 +25,7 @@ def run(function, input_value, total_branches, timeout=5):
         @classmethod
         def parse_line(cls, l: str):
             cols = l.strip().split('\t')
-            return cls(int(cols[0]), bool(int(cols[1])), cols[2], { True: int(cols[3]), False: int(cols[4]) })
+            return cls(int(cols[0]), int(cols[1]), bool(int(cols[2])), cols[3], { True: int(cols[4]), False: int(cols[5]) })
    
     def clear_coverage_report():
         open('.cov', 'w').close()
@@ -80,6 +81,6 @@ if __name__ == "__main__":
     print (total_branches)
     
     cannot_cover=set()
-    target_branch = next_target(total_branches, cannot_cover)
+    target_branch = (6, False)
     fitness = get_fitness(cfg, target_branch, cov_report)
     print (fitness)

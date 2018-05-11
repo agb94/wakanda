@@ -8,7 +8,8 @@ class Profiler(ast.NodeTransformer):
         self.branches = dict()
         self.branch_id = 1
 
-    def visit_predicate(self, expr_node):
+    def visit_predicate(self, expr_node, depth=0):
+        bid_multiplier = -1 if depth > 0 else 1
         if isinstance(expr_node, ast.Compare):
             if len(expr_node.ops) > 1:
                 left_node = ast.Compare(
@@ -20,19 +21,19 @@ class Profiler(ast.NodeTransformer):
                 left_node = expr_node.left
             expr_node = ast.Call(
                 func = ast.Attribute(value = ast.Name(id='covw', ctx=ast.Load()), attr='comparison', ctx=ast.Load()),
-                args=[ast.Num(n = self.branch_id), ast.Str(s = expr_node.ops[-1].__class__.__name__), left_node, expr_node.comparators[-1]],
+                args=[ast.Num(n = bid_multiplier * self.branch_id), ast.Num(n = depth), ast.Str(s = expr_node.ops[-1].__class__.__name__), left_node, expr_node.comparators[-1]],
                 keywords=[])
         elif isinstance(expr_node, ast.BoolOp):
             for i, value in enumerate(expr_node.values):
-                expr_node.values[i] = self.visit_predicate(value)
+                expr_node.values[i] = self.visit_predicate(value, depth + 1)
             expr_node = ast.Call(
                 func = ast.Attribute(value = ast.Name(id='covw', ctx=ast.Load()), attr='boolop', ctx=ast.Load()),
-                args=[ast.Num(n = self.branch_id), ast.Str(s = expr_node.op.__class__.__name__), ast.List(elts=expr_node.values, ctx=ast.Load())],
+                args=[ast.Num(n = bid_multiplier * self.branch_id), ast.Num(n = depth), ast.Str(s = expr_node.op.__class__.__name__), ast.List(elts=expr_node.values, ctx=ast.Load())],
                 keywords=[])
         elif isinstance(expr_node, ast.Name) or isinstance(expr_node, ast.Call):
             expr_node = ast.Call(
                 func = ast.Attribute(value = ast.Name(id='covw', ctx=ast.Load()), attr='value', ctx=ast.Load()),
-                args=[ast.Num(n = self.branch_id), expr_node],
+                args=[ast.Num(n = bid_multiplier * self.branch_id), ast.Num(n = depth), expr_node],
                 keywords=[])
         else:
             raise Exception("Unsupported Branch Predicate")
@@ -40,7 +41,7 @@ class Profiler(ast.NodeTransformer):
 
     def visit_branch_node(self, node):
         expr_node = node.test
-        expr_node = self.visit_predicate(expr_node)
+        expr_node = self.visit_predicate(expr_node, depth=0)
         self.branches[node] = self.branch_id
         self.branch_id += 1
         node.test = expr_node
