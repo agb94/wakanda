@@ -25,7 +25,7 @@ def run(function, input_value, total_branches, timeout=5):
         @classmethod
         def parse_line(cls, l: str):
             cols = l.strip().split('\t')
-            return cls(int(cols[0]), int(cols[1]), bool(int(cols[2])), cols[3], { True: int(cols[4]), False: int(cols[5]) })
+            return cls(int(cols[0]), int(cols[1]), bool(int(cols[2])), cols[3], { True: float(cols[4]), False: float(cols[5]) })
    
     def clear_coverage_report():
         open('.cov', 'w').close()
@@ -76,11 +76,13 @@ if __name__ == "__main__":
     cfg = get_cfg(function_node, profiler.branches)
     target_module = importlib.import_module(inst_sourcefile.rstrip('.py').replace('/', '.'))
     
-    print (total_branches)
-    cov_report = run(target_module.__dict__[args.function], [3,3,2], total_branches)
-    print (total_branches)
     
     cannot_cover=set()
-    target_branch = (6, False)
+    target_branch = (5, True)
+    cov_report = run(target_module.__dict__[args.function], [3,3,2], total_branches)
+    fitness = get_fitness(cfg, target_branch, cov_report)
+    print (fitness)
+
+    cov_report = run(target_module.__dict__[args.function], [3,3,2.5], total_branches)
     fitness = get_fitness(cfg, target_branch, cov_report)
     print (fitness)

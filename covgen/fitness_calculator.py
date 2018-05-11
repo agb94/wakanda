@@ -32,25 +32,25 @@ def get_fitness(cfg, target_branch, cov_result):
                 distances = list()
                 for row in reversed(accumulated):
                     if row.depth == max_depth:
-                        distances.append(row.branch_distance[True])
+                        distances.append(row.branch_distance)
                         del row
                     else:
                         if row.op == 'Or':
-                            neg = [distance <= 0 for distance in distances]
+                            neg = list(filter(lambda d: d[True] <= 0, distances))
                             if neg:
                                 row.branch_distance[True] = 0
-                                row.branch_distance[False] = float(sum(neg))/len(neg)
+                                row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), distances)))/len(distances)
                             else:
-                                row.branch_distance[True] = float(sum(distances))/len(distances)
+                                row.branch_distance[True] = float(sum(map(lambda d: d[True], distances)))/len(distances)
                                 row.branch_distance[False] = 0
                         elif row.op == 'And':
-                            pos = [distance > 0 for distance in distances]
+                            pos = list(filter(lambda d: d[True] > 0, distances))
                             if pos:
-                                row.branch_distance[True] = float(sum(pos))/len(pos)
+                                row.branch_distance[True] = float(sum(map(lambda d: d[True], pos)))/len(pos)
                                 row.branch_distance[False] = 0
                             else:
                                 row.branch_distance[True] = 0
-                                row.branch_distance[False] = abs(float(sum(distances))/len(distances))
+                                row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), distances)))/len(distances)
                 max_depth -= 1
         branch_distance = report.branch_distance[div_point[1]]
     else:

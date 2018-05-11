@@ -10,10 +10,10 @@ def write_cov_report(bid:int, depth:int, result: bool, op: str, branch_distance_
 def comparison(bid, depth, op, a, b):
     if op == "Eq":
         result = a == b
-        write_cov_report(bid, depth, result, 'Eq', abs(a - b), -abs(a - b))
+        write_cov_report(bid, depth, result, 'Eq', abs(a - b), int(result))
     elif op == "NotEq":
         result = a != b
-        write_cov_report(bid, depth, result, 'NotEq', -abs(a - b), abs(a - b))
+        write_cov_report(bid, depth, result, 'NotEq', int(not result), abs(a - b))
     elif op == "Lt":
         result = a < b
         write_cov_report(bid, depth, result, 'Lt', a - b + K, b - a)
@@ -37,7 +37,6 @@ def boolop(bid, depth, op, values):
             result = result and values[i]
         elif op == 'Or':
             result = result or values[i]
-    print (values)
     write_cov_report(bid, depth, result, op, 0, 0)
     return result
 

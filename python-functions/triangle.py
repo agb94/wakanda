@@ -25,7 +25,7 @@ def classify_triangle(a, b, c):
 
     if a + b <= c:
         return TriangleType.INVALID
-    elif (a == b and b == c) and c == a:
+    elif a == b and b == c:
         return TriangleType.EQUALATERAL
     elif a == b or b == c:
         return TriangleType.ISOCELES
