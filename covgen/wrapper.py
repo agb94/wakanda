@@ -40,6 +40,11 @@ def boolop(bid, depth, op, values):
     write_cov_report(bid, depth, result, op, 0, 0)
     return result
 
+def unaryop(bid, depth, op, operand):
+    result = not operand
+    write_cov_report(bid, depth, result, op, 0, 0)
+    return result
+
 def value(bid, depth, v):
     result = bool(v)
     write_cov_report(bid, depth, result, 'V', -abs(v), abs(v))

@@ -30,6 +30,11 @@ class Profiler(ast.NodeTransformer):
                 func = ast.Attribute(value = ast.Name(id='covw', ctx=ast.Load()), attr='boolop', ctx=ast.Load()),
                 args=[ast.Num(n = bid_multiplier * self.branch_id), ast.Num(n = depth), ast.Str(s = expr_node.op.__class__.__name__), ast.List(elts=expr_node.values, ctx=ast.Load())],
                 keywords=[])
+        elif isinstance(expr_node, ast.UnaryOp) and isinstance(expr_node.op, ast.Not):
+            expr_node = ast.Call(
+                func = ast.Attribute(value = ast.Name(id='covw', ctx=ast.Load()), attr='unaryop', ctx=ast.Load()),
+                args=[ast.Num(n = bid_multiplier * self.branch_id), ast.Num(n = depth), ast.Str(s = expr_node.op.__class__.__name__), self.visit_predicate(expr_node.operand, depth + 1)],
+                keywords=[])
         elif isinstance(expr_node, ast.Name) or isinstance(expr_node, ast.Call):
             expr_node = ast.Call(
                 func = ast.Attribute(value = ast.Name(id='covw', ctx=ast.Load()), attr='value', ctx=ast.Load()),

@@ -78,11 +78,7 @@ if __name__ == "__main__":
     
     
     cannot_cover=set()
-    target_branch = (5, True)
-    cov_report = run(target_module.__dict__[args.function], [3,3,2], total_branches)
-    fitness = get_fitness(cfg, target_branch, cov_report)
-    print (fitness)
-
-    cov_report = run(target_module.__dict__[args.function], [3,3,2.5], total_branches)
+    target_branch = (1, False)
+    cov_report = run(target_module.__dict__[args.function], [3], total_branches)
     fitness = get_fitness(cfg, target_branch, cov_report)
     print (fitness)

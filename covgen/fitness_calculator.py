@@ -20,11 +20,11 @@ def get_fitness(cfg, target_branch, cov_result):
                 cursor = i
                 report = cov_result[i]
                 break
-        if report.op == 'Or' or report.op == 'And':
+        if report.op == 'Or' or report.op == 'And' or report.op == 'Not':
             branch_distance = report.branch_distance[div_point[1]]
             accumulated = list()
             max_depth = 0
-            while abs(cov_result[cursor].id) == report.id:
+            while cursor >= 0 and abs(cov_result[cursor].id) == report.id:
                 accumulated.append(cov_result[cursor])
                 max_depth = max(cov_result[cursor].depth, max_depth)
                 cursor -= 1
@@ -33,8 +33,7 @@ def get_fitness(cfg, target_branch, cov_result):
                 for row in reversed(accumulated):
                     if row.depth == max_depth:
                         distances.append(row.branch_distance)
-                        del row
-                    else:
+                    elif row.depth == max_depth - 1:
                         if row.op == 'Or':
                             neg = list(filter(lambda d: d[True] <= 0, distances))
                             if neg:
@@ -51,6 +50,11 @@ def get_fitness(cfg, target_branch, cov_result):
                             else:
                                 row.branch_distance[True] = 0
                                 row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), distances)))/len(distances)
+                        elif row.op == 'Not':
+                            assert len(distances) == 1
+                            row.branch_distance[True] = distances[0][False]
+                            row.branch_distance[False] = distances[0][True]
+                        distances = list()
                 max_depth -= 1
         branch_distance = report.branch_distance[div_point[1]]
     else:
