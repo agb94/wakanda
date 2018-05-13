@@ -37,19 +37,31 @@ def get_fitness(cfg, target_branch, cov_result):
                         if row.op == 'Or':
                             neg = list(filter(lambda d: d[True] <= 0, distances))
                             if neg:
+                                # Evaluated to True
                                 row.branch_distance[True] = 0
+                                # every subexpression must be False
                                 row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), distances)))/len(distances)
                             else:
-                                row.branch_distance[True] = float(sum(map(lambda d: d[True], distances)))/len(distances)
+                                # Evaluated to False
                                 row.branch_distance[False] = 0
+                                # At least one subexpression must be True
+                                # Use both min and average
+                                row.branch_distance[True] = min(map(lambda d: d[True], distances)) / 2
+                                row.branch_distance[True] += float(sum(map(lambda d: d[True], distances)))/len(distances) / 2
                         elif row.op == 'And':
                             pos = list(filter(lambda d: d[True] > 0, distances))
                             if pos:
-                                row.branch_distance[True] = float(sum(map(lambda d: d[True], pos)))/len(pos)
+                                # Evaluated to False
                                 row.branch_distance[False] = 0
+                                # every subexpression must be True
+                                row.branch_distance[True] = float(sum(map(lambda d: d[True], pos)))/len(pos)
                             else:
+                                # Evaluated to True
                                 row.branch_distance[True] = 0
-                                row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), distances)))/len(distances)
+                                # At least one subexpression must be False
+                                # Use both min and average
+                                row.branch_distance[False] = min(map(lambda d: abs(d[False]), distances)) / 2
+                                row.branch_distance[False] += float(sum(map(lambda d: abs(d[False]), distances)))/len(distances) / 2
                         elif row.op == 'Not':
                             assert len(distances) == 1
                             row.branch_distance[True] = distances[0][False]
