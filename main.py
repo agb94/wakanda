@@ -4,6 +4,9 @@ from covgen.fitness_calculator import get_fitness
 import argparse
 import importlib
 import os
+import sys
+import traceback
+import re
 
 def run(function, input_value, total_branches, timeout=5):
     import signal
@@ -47,12 +50,20 @@ def run(function, input_value, total_branches, timeout=5):
     signal.alarm(timeout)
     try:
         function(*input_value)
-    except Exception:
-        return None
+    except Exception as e:
+        if type(e) is not TypeError:
+            return (False, None)
+        else:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
+                if function.__name__ in elem:
+                    lineno = int(elem.split(',')[1].strip().split()[-1])
+            op, type1, type2 = tuple(map(lambda x: x.strip("'"), filter(lambda x: x.startswith("'") and x.endswith("'"), str(exc_value).split())))
+            return (False, (lineno, op, type1, type2))
     cov_result = read_coverage_report()
     for b in cov_result:
         total_branches[b.to_tuple()] = tuple(input_value)
-    return cov_result
+    return (True, cov_result)
 
 def next_target(branches, cannot_cover):
     not_covered = list(filter(lambda b: not b[1] and not b[0] in cannot_cover, branches.items()))
@@ -79,8 +90,17 @@ if __name__ == "__main__":
     
     cannot_cover=set()
     target_branch = (1, False)
+    success, result = run(target_module.__dict__[args.function], ['abc'], total_branches)
+    print(result)
+    if success:
+        cov_result = result
+    elif result:
+        lineno, op, type1, type2 = result
+        
+    """
     for i in range(0, 9):
         print (i)
         cov_report = run(target_module.__dict__[args.function], [i], total_branches)
         fitness = get_fitness(cfg, target_branch, cov_report)
         print (fitness)
+        """
