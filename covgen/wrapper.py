@@ -75,3 +75,7 @@ def dist(a, b):
             return 0;
         else:
             return (len(a) - len(b)) * 100
+
+    # boolean type values
+    elif (type(a) is bool and type(b) is bool):
+        return a - b
