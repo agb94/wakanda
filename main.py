@@ -70,11 +70,10 @@ def run(function, input_value, total_branches, timeout=5):
                 if function.__name__ in elem:
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
-            op, type1, type2 = tuple(
-                map(lambda x: x.strip("'"),
-                    filter(lambda x: x.startswith("'") and x.endswith("'"),
-                           str(exc_value).split())))
-            return (False, (lineno, op, type1, type2))
+            types = list(map(lambda x: x.strip("'"),
+                        filter(lambda x: x.startswith("'") and x.endswith("'"),
+                            str(exc_value).split(':')[-1].strip().split())))
+            return (False, (lineno, types))
     cov_result = read_coverage_report()
     for b in cov_result:
         total_branches[b.to_tuple()] = tuple(input_value)
@@ -111,7 +110,7 @@ if __name__ == "__main__":
     # Set target branch
     target_branch = (1, False)
     # Set input
-    function_input = ['abc']
+    function_input = [True, 2, 3]
     # Run the instrumented function
     success, result = run(target_module.__dict__[args.function], function_input,
                           total_branches)
@@ -120,11 +119,11 @@ if __name__ == "__main__":
         cov_result = result
     elif result:
         # Type Error
-        lineno, op, type1, type2 = result
+        lineno, types = result
         suspicous_inputs = set()
         args = inspect.getargspec(target_module.__dict__[args.function]).args
         for v in profiler.line_and_vars[lineno]:
             if v in args:
+                print("{} is suspicous".format(v))
                 suspicous_inputs.add(args.index(v))
-        print(lineno, op, type1, type2)
-        print(suspicous_inputs)
+        print(lineno, types, suspicous_inputs)
