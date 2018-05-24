@@ -58,7 +58,7 @@ def iter(bid, depth, expr):
 ## Suppose a, b are given with 'valid' type -> one of int, float, str, list, tuple
 def dist(a, b):
     # numerical values
-    if (type(a) is int or type(a) is float) and (type(b) is int or type(b) is float) :
+    if (type(a) is int or type(a) is float or type(a) is bool) and (type(b) is int or type(b) is float or type(b) is bool) :
         return a - b
 
     # single characters
@@ -76,6 +76,6 @@ def dist(a, b):
         else:
             return (len(a) - len(b)) * 100
 
-    # boolean type values
-    elif (type(a) is bool and type(b) is bool):
-        return a - b
+    # # boolean type values
+    # elif (type(a) is bool and type(b) is bool):
+    #     return a - b
