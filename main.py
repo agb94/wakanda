@@ -89,6 +89,19 @@ def next_target(branches, cannot_cover):
     else:
         return None
 
+def get_base(type):
+    if type == "int":
+        return 0
+    elif type == "float":
+        return 0.12345
+    elif type == "str":
+        return ""
+    elif type == "list":
+        return []
+    elif type == "tuple":
+        return ()
+    elif type == "bool":
+        return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
@@ -110,20 +123,46 @@ if __name__ == "__main__":
     # Set target branch
     target_branch = (1, False)
     # Set input
-    function_input = [True, 2, 3]
+    # function_input = ["a", 2, 3]
     # Run the instrumented function
-    success, result = run(target_module.__dict__[args.function], function_input,
+
+    args_cnt = len(function_node.args.args)
+    #types = ["bool", "int", "float", "str", "list", "tuple"]
+    curr_type = ["str" for i in range(args_cnt)]
+    success = False
+    cnt = 0
+    while not success:
+        curr_input = [get_base(type) for type in curr_type]
+        success, result = run(target_module.__dict__[args.function], curr_input,
                           total_branches)
-    if success:
+        if success:
         # No Error
-        cov_result = result
-    elif result:
+            cov_result = result
+            break
+
+        elif not result: #length is not enough...
+            print("Length is not enough")
+            break
+
+        elif result:
         # Type Error
-        lineno, types = result
-        suspicous_inputs = set()
-        args = inspect.getargspec(target_module.__dict__[args.function]).args
-        for v in profiler.line_and_vars[lineno]:
-            if v in args:
-                print("{} is suspicous".format(v))
-                suspicous_inputs.add(args.index(v))
-        print(lineno, types, suspicous_inputs)
+            lineno, types = result
+            suspicous_inputs = set()
+            _args = inspect.getargspec(target_module.__dict__[args.function]).args
+            for v in profiler.line_and_vars[lineno]:
+                if v in _args:
+                    #print("{} is suspicous".format(v))
+                    suspicous_inputs.add(_args.index(v))
+            if len(types) == 1:
+                for i in suspicous_inputs:
+                    if curr_type[i] == types[0]:
+                        curr_type[i] = "str"
+            elif len(types) == 3:
+                for i in suspicous_inputs:
+                    if curr_type[i] == types[1]:
+                        curr_type[i] = types[2]
+                    elif curr_type[i] == types[2]:
+                        curr_type[i] = types[1]
+            # print(lineno, types, suspicous_inputs)
+            # print(curr_type)
+    print(curr_type)
