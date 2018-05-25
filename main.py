@@ -132,11 +132,11 @@ if __name__ == "__main__":
     inst_sourcefile = os.path.join(
         os.path.dirname(args.sourcefile),
         'inst_' + os.path.basename(args.sourcefile))
+    print("{} is generated.".format(inst_sourcefile))
     function_node, total_branches = profiler.instrument(
         args.sourcefile, inst_sourcefile, args.function)
     cfg = get_cfg(function_node, profiler.branches)
-    target_module = importlib.import_module(
-        inst_sourcefile.rstrip('.py').replace('/', '.'))
+    target_module = importlib.import_module(os.path.splitext(inst_sourcefile)[0].replace('/', '.'))
 
     # Set target branch
     target_branch = (1, True)
