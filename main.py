@@ -116,9 +116,9 @@ def expand_sequence(value):
     if isinstance(value, str):
         value += " "
     elif isinstance(value, list):
-        value.append(0)
+        value.append(get_base(random.choice(POSSIBLE_TYPES)))
     elif isinstance(value, tuple):
-        value += (0, )
+        value += (get_base(random.choice(POSSIBLE_TYPES)), )
     return value
 
 if __name__ == "__main__":
@@ -168,7 +168,6 @@ if __name__ == "__main__":
                     if v in _args:
                         #print("{} is suspicous".format(v))
                         suspicous_inputs.add(_args.index(v))
-                print (error_info)
                 if len(types) == 1:
                     for i in suspicous_inputs:
                         if curr_type[i] == types[0]:
