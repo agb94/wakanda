@@ -12,6 +12,61 @@ import random
 
 POSSIBLE_TYPES = ["bool", "int", "float", "str", "list", "tuple"]
 
+
+def get_base(type):
+    if type == "int":
+        return 0
+    elif type == "float":
+        return 0.12345
+    elif type == "str":
+        return ""
+    elif type == "list":
+        return []
+    elif type == "tuple":
+        return ()
+    elif type == "bool":
+        return True
+
+class _type:
+    def __init__(self, t):
+        self.this = t
+        if t in ["list", "tuple"]:
+            self.elem = []
+        self.elem_cnt = 0
+        self.val = None
+        #length str
+
+    def get(self):
+        # if self.val not None:
+        #     return self.val
+        if self.this in ["int", "float", "str", "bool"]:
+            return get_base(self.this)
+        elif self.this == "list":
+            tmp = []
+            for i in self.elem:
+                tmp.append(i.get())
+            return tmp
+        elif self.this == "tuple":
+            tmp = ()
+            for i in self.elem:
+                tmp += (i.get(),)
+            return tmp
+
+    def add(self, t):
+        assert(self.this in ["list", "tuple"])
+        self.elem.append(_type(t))
+        self.elem_cnt += 1
+
+    def expand(self):
+        assert(self.this in ["list", "tuple"])
+        self.elem.append(_type(random.choice(POSSIBLE_TYPES)))
+        self.elem_cnt += 1
+
+    def __getitem__(self, num):
+        return self.elem[num]
+
+    # def __str__(self):
+
 def run(function, input_value, total_branches, timeout=5):
     import signal
 
@@ -98,19 +153,6 @@ def next_target(branches, cannot_cover):
     else:
         return None
 
-def get_base(type):
-    if type == "int":
-        return 0
-    elif type == "float":
-        return 0.12345
-    elif type == "str":
-        return ""
-    elif type == "list":
-        return []
-    elif type == "tuple":
-        return ()
-    elif type == "bool":
-        return True
 
 def expand_sequence(value):
     if isinstance(value, str):
@@ -144,13 +186,16 @@ if __name__ == "__main__":
     # function_input = ["a", 2, 3]
     # Run the instrumented function
 
-    
+
     args_cnt = len(function_node.args.args)
-    curr_type = [random.choice(POSSIBLE_TYPES) for i in range(args_cnt)]
-    curr_input = [get_base(type) for type in curr_type]
+    curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
+    # print(curr_type)
+    curr_input = [type.get() for type in curr_type]
     success = False
     cnt = 0
     while not success:
+        print([t.this for t in curr_type])
+        print(curr_input)
         success, result = run(target_module.__dict__[args.function], curr_input,
                           total_branches)
         if success:
@@ -170,19 +215,19 @@ if __name__ == "__main__":
                         suspicous_inputs.add(_args.index(v))
                 if len(types) == 1:
                     for i in suspicous_inputs:
-                        if curr_type[i] == types[0]:
-                            curr_type[i] = random.choice(["str", "list", "tuple"])
-                            curr_input[i] = get_base(curr_type[i])
+                        if curr_type[i].this == types[0]:
+                            curr_type[i] = _type(random.choice(["str", "list", "tuple"]))
+                            curr_input[i] = curr_type[i].get()
                 else:
                     for i in range(args_cnt):
                         change_probability = 1 if i in suspicous_inputs else 0.1
                         if random.random() < change_probability:
-                            if curr_type[i] in types:
-                                curr_type[i] = random.choice(types)
-                                curr_input[i] = get_base(curr_type[i])
+                            if curr_type[i].this in types:
+                                curr_type[i] = _type(random.choice(types))
+                                curr_input[i] = curr_type[i].get()
                             elif random.random() < 0.1:
-                                curr_type[i] = random.choice(POSSIBLE_TYPES)
-                                curr_input[i] = get_base(curr_type[i])
+                                curr_type[i] = _type(random.choice(POSSIBLE_TYPES))
+                                curr_input[i] = curr_type[i].get()
             elif error_type == IndexError:
                 lineno = error_info
                 suspicous_inputs = set()
@@ -191,8 +236,13 @@ if __name__ == "__main__":
                     if v in _args:
                         suspicous_inputs.add(_args.index(v))
                 for i in suspicous_inputs:
-                    curr_input[i] = expand_sequence(curr_input[i])
+                    if curr_type[i].this == "str":
+                        curr_input[i] = expand_sequence(curr_input[i])
+                    elif curr_type[i].this in ["list", "tuple"]:
+                        curr_type[i].expand()
+                        curr_input[i] = curr_type[i].get()
             else:
-                curr_type = [random.choice(POSSIBLE_TYPES) for i in range(args_cnt)]
-                curr_input = [get_base(type) for type in curr_type]
-    print(curr_type)
+                curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
+                curr_input = [type.get() for type in curr_type]
+
+    print([t.this for t in curr_type])
