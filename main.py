@@ -8,7 +8,9 @@ import sys
 import traceback
 import re
 import inspect
+import random
 
+POSSIBLE_TYPES = ["bool", "int", "float", "str", "list", "tuple"]
 
 def run(function, input_value, total_branches, timeout=5):
     import signal
@@ -67,9 +69,10 @@ def run(function, input_value, total_branches, timeout=5):
                 if function.__name__ in elem:
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
-            types = list(map(lambda x: x.strip("'"),
-                        filter(lambda x: x.startswith("'") and x.endswith("'"),
-                            str(exc_value).split(':')[-1].strip().split())))
+            types = list(filter(lambda s: "'{}'".format(s) in str(exc_value), POSSIBLE_TYPES))
+            #types = list(map(lambda x: x.strip("'"),
+            #            filter(lambda x: x.startswith("'") and x.endswith("'"),
+            #                str(exc_value).split(':')[-1].strip().split())))
             return (False, (TypeError, (lineno, types)))
         elif type(e) is IndexError:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -115,7 +118,7 @@ def expand_sequence(value):
     elif isinstance(value, list):
         value.append(0)
     elif isinstance(value, tuple):
-        value += (0)
+        value += (0, )
     return value
 
 if __name__ == "__main__":
@@ -141,21 +144,19 @@ if __name__ == "__main__":
     # function_input = ["a", 2, 3]
     # Run the instrumented function
 
+    
     args_cnt = len(function_node.args.args)
-    #types = ["bool", "int", "float", "str", "list", "tuple"]
-    curr_type = ["int" for i in range(args_cnt)]
+    curr_type = [random.choice(POSSIBLE_TYPES) for i in range(args_cnt)]
     curr_input = [get_base(type) for type in curr_type]
     success = False
     cnt = 0
     while not success:
         success, result = run(target_module.__dict__[args.function], curr_input,
                           total_branches)
-        print(curr_type, curr_input)
         if success:
             # No Error
             cov_result = result
             break
-
         else:
             error_type, error_info = result
             if error_type == TypeError:
@@ -167,20 +168,22 @@ if __name__ == "__main__":
                     if v in _args:
                         #print("{} is suspicous".format(v))
                         suspicous_inputs.add(_args.index(v))
+                print (error_info)
                 if len(types) == 1:
                     for i in suspicous_inputs:
                         if curr_type[i] == types[0]:
-                            curr_type[i] = "str"
-                            curr_input[i] = get_base("str")
-                elif len(types) == 3:
-                    for i in suspicous_inputs:
-                        if curr_type[i] == types[1]:
-                            curr_type[i] = types[2]
-                            curr_input[i] = get_base(types[2])
-                        elif curr_type[i] == types[2]:
-                            curr_type[i] = types[1]
-                            curr_input[i] = get_base(types[1])
-                # print(lineno, types, suspicous_inputs)
+                            curr_type[i] = random.choice(["str", "list", "tuple"])
+                            curr_input[i] = get_base(curr_type[i])
+                else:
+                    for i in range(args_cnt):
+                        change_probability = 1 if i in suspicous_inputs else 0.1
+                        if random.random() < change_probability:
+                            if curr_type[i] in types:
+                                curr_type[i] = random.choice(types)
+                                curr_input[i] = get_base(curr_type[i])
+                            elif random.random() < 0.1:
+                                curr_type[i] = random.choice(POSSIBLE_TYPES)
+                                curr_input[i] = get_base(curr_type[i])
             elif error_type == IndexError:
                 lineno = error_info
                 suspicous_inputs = set()
@@ -191,5 +194,6 @@ if __name__ == "__main__":
                 for i in suspicous_inputs:
                     curr_input[i] = expand_sequence(curr_input[i])
             else:
-                print(result)
+                curr_type = [random.choice(POSSIBLE_TYPES) for i in range(args_cnt)]
+                curr_input = [get_base(type) for type in curr_type]
     print(curr_type)

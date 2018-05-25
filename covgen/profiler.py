@@ -99,7 +99,7 @@ class Profiler(ast.NodeTransformer):
                 value=ast.Name(id='covw', ctx=ast.Load()),
                 attr='iter',
                 ctx=ast.Load()),
-            args=[ast.Num(n=self.branch_id), node.iter],
+            args=[ast.Num(n=self.branch_id), ast.Num(n=0), node.iter],
             keywords=[])
         self.branches[node] = self.branch_id
         self.branch_id += 1
