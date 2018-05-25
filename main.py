@@ -121,7 +121,7 @@ if __name__ == "__main__":
         inst_sourcefile.rstrip('.py').replace('/', '.'))
 
     # Set target branch
-    target_branch = (1, False)
+    target_branch = (1, True)
     # Set input
     # function_input = ["a", 2, 3]
     # Run the instrumented function

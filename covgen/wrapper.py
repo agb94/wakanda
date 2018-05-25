@@ -1,3 +1,5 @@
+import sys
+
 K = 1
 
 def write_cov_report(bid:int, depth:int, result: bool, op: str, branch_distance_true: int, branch_distance_false: int):
@@ -75,7 +77,9 @@ def dist(a, b):
             return 0;
         else:
             return (len(a) - len(b)) * 100
-
+    
+    else:
+        return sys.maxsize
     # # boolean type values
     # elif (type(a) is bool and type(b) is bool):
     #     return a - b
