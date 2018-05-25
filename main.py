@@ -61,19 +61,25 @@ def run(function, input_value, total_branches, timeout=5):
     try:
         function(*input_value)
     except Exception as e:
-        if type(e) is not TypeError:
-            return (False, None)
-        else:
+        if type(e) is TypeError:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            for elem in traceback.format_exception(exc_type, exc_value,
-                                                   exc_traceback):
+            for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
                 if function.__name__ in elem:
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
             types = list(map(lambda x: x.strip("'"),
                         filter(lambda x: x.startswith("'") and x.endswith("'"),
                             str(exc_value).split(':')[-1].strip().split())))
-            return (False, (lineno, types))
+            return (False, (TypeError, (lineno, types)))
+        elif type(e) is IndexError:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
+                if function.__name__ in elem:
+                    lineno = int(elem.split(',')[1].strip().split()[-1])
+                    break
+            return (False, (IndexError, lineno))
+        else:
+            return (False, (type(e), e))
     cov_result = read_coverage_report()
     for b in cov_result:
         total_branches[b.to_tuple()] = tuple(input_value)
@@ -103,6 +109,15 @@ def get_base(type):
     elif type == "bool":
         return True
 
+def expand_sequence(value):
+    if isinstance(value, str):
+        value += " "
+    elif isinstance(value, list):
+        value.append(0)
+    elif isinstance(value, tuple):
+        value += (0)
+    return value
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
     parser.add_argument(
@@ -128,41 +143,53 @@ if __name__ == "__main__":
 
     args_cnt = len(function_node.args.args)
     #types = ["bool", "int", "float", "str", "list", "tuple"]
-    curr_type = ["str" for i in range(args_cnt)]
+    curr_type = ["int" for i in range(args_cnt)]
+    curr_input = [get_base(type) for type in curr_type]
     success = False
     cnt = 0
     while not success:
-        curr_input = [get_base(type) for type in curr_type]
         success, result = run(target_module.__dict__[args.function], curr_input,
                           total_branches)
+        print(curr_type, curr_input)
         if success:
-        # No Error
+            # No Error
             cov_result = result
             break
 
-        elif not result: #length is not enough...
-            print("Length is not enough")
-            break
-
-        elif result:
-        # Type Error
-            lineno, types = result
-            suspicous_inputs = set()
-            _args = inspect.getargspec(target_module.__dict__[args.function]).args
-            for v in profiler.line_and_vars[lineno]:
-                if v in _args:
-                    #print("{} is suspicous".format(v))
-                    suspicous_inputs.add(_args.index(v))
-            if len(types) == 1:
+        else:
+            error_type, error_info = result
+            if error_type == TypeError:
+                # Type Error
+                lineno, types = error_info
+                suspicous_inputs = set()
+                _args = inspect.getargspec(target_module.__dict__[args.function]).args
+                for v in profiler.line_and_vars[lineno]:
+                    if v in _args:
+                        #print("{} is suspicous".format(v))
+                        suspicous_inputs.add(_args.index(v))
+                if len(types) == 1:
+                    for i in suspicous_inputs:
+                        if curr_type[i] == types[0]:
+                            curr_type[i] = "str"
+                            curr_input[i] = get_base("str")
+                elif len(types) == 3:
+                    for i in suspicous_inputs:
+                        if curr_type[i] == types[1]:
+                            curr_type[i] = types[2]
+                            curr_input[i] = get_base(types[2])
+                        elif curr_type[i] == types[2]:
+                            curr_type[i] = types[1]
+                            curr_input[i] = get_base(types[1])
+                # print(lineno, types, suspicous_inputs)
+            elif error_type == IndexError:
+                lineno = error_info
+                suspicous_inputs = set()
+                _args = inspect.getargspec(target_module.__dict__[args.function]).args
+                for v in profiler.line_and_vars[lineno]:
+                    if v in _args:
+                        suspicous_inputs.add(_args.index(v))
                 for i in suspicous_inputs:
-                    if curr_type[i] == types[0]:
-                        curr_type[i] = "str"
-            elif len(types) == 3:
-                for i in suspicous_inputs:
-                    if curr_type[i] == types[1]:
-                        curr_type[i] = types[2]
-                    elif curr_type[i] == types[2]:
-                        curr_type[i] = types[1]
-            # print(lineno, types, suspicous_inputs)
-            # print(curr_type)
+                    curr_input[i] = expand_sequence(curr_input[i])
+            else:
+                print(result)
     print(curr_type)
