@@ -27,6 +27,7 @@ def get_base(type):
     elif type == "bool":
         return True
 
+
 class _type:
     def __init__(self, t):
         self.this = t
@@ -61,6 +62,10 @@ class _type:
         assert(self.this in ["list", "tuple"])
         self.elem.append(_type(random.choice(POSSIBLE_TYPES)))
         self.elem_cnt += 1
+
+
+    def set_elem(self, idx, obj):
+        self.elem[idx] = obj
 
     def __getitem__(self, num):
         return self.elem[num]
@@ -136,8 +141,15 @@ def run(function, input_value, total_branches, timeout=5):
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
             return (False, (IndexError, lineno))
-        else:
-            return (False, (type(e), e))
+        else: #Need to distinguish other errors : AttributeError ...
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
+                if function.__name__ in elem:
+                    lineno = int(elem.split(',')[1].strip().split()[-1])
+                    break
+            type_a = str(e.type_a).split("'")[1]
+            type_b = str(e.type_b).split("'")[1]
+            return (False, (Warning, (lineno, type_a, type_b)))
     cov_result = read_coverage_report()
     for b in cov_result:
         total_branches[b.to_tuple()] = tuple(input_value)
@@ -192,7 +204,6 @@ if __name__ == "__main__":
     # print(curr_type)
     curr_input = [type.get() for type in curr_type]
     success = False
-    cnt = 0
     while not success:
         print([t.this for t in curr_type])
         print(curr_input)
@@ -241,6 +252,28 @@ if __name__ == "__main__":
                     elif curr_type[i].this in ["list", "tuple"]:
                         curr_type[i].expand()
                         curr_input[i] = curr_type[i].get()
+            elif error_type == Warning:
+                lineno, type_a, type_b = error_info
+                suspicous_inputs = set()
+                _args = inspect.getargspec(target_module.__dict__[args.function]).args
+                for v in profiler.line_and_vars[lineno]:
+                    if v in _args:
+                        suspicous_inputs.add(_args.index(v))
+                        #Need to know index number -> last idx is suspicious
+                for i in suspicous_inputs:
+                    if curr_type[i].this == "str":
+                        curr_type[i] = _type(random.choice(["list", "tuple"]))
+                        curr_input[i] = curr_type[i].get()
+                        continue
+                    elif curr_type[i].elem_cnt == 0:
+                        curr_type[i] = _type(random.choice(POSSIBLE_TYPES))
+                        curr_input[i] = curr_type[i].get()
+                        continue
+                    if curr_type[i][-1].this == type_a:
+                        curr_type[i].set_elem(-1, _type(type_b))
+                    elif curr_type[i][-1].this == type_b:
+                        curr_type[i].set_elem(-1, _type(type_a))
+                    curr_input[i] = curr_type[i].get()
             else:
                 curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
                 curr_input = [type.get() for type in curr_type]

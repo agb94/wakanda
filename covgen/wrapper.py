@@ -2,6 +2,11 @@ import sys
 
 K = 1
 
+class MyError(Exception):
+    def __init__(self, type_a, type_b):
+        self.type_a = type_a
+        self.type_b = type_b
+
 def write_cov_report(bid:int, depth:int, result: bool, op: str, branch_distance_true: int, branch_distance_false: int):
     assert isinstance(bid, int)
     assert isinstance(depth, int)
@@ -77,9 +82,9 @@ def dist(a, b):
             return 0;
         else:
             return (len(a) - len(b)) * 100
-    
+
     else:
-        return sys.maxsize
+        raise MyError(type(a), type(b))
     # # boolean type values
     # elif (type(a) is bool and type(b) is bool):
     #     return a - b
