@@ -1,6 +1,8 @@
 from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
+from covgen.wrapper import MyError
+
 import argparse
 import importlib
 import os
@@ -141,7 +143,7 @@ def run(function, input_value, total_branches, timeout=5):
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
             return (False, (IndexError, lineno))
-        else: #Need to distinguish other errors : AttributeError ...
+        elif type(e) is MyError: #Need to distinguish other errors : AttributeError ...
             exc_type, exc_value, exc_traceback = sys.exc_info()
             for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
                 if function.__name__ in elem:
@@ -150,6 +152,8 @@ def run(function, input_value, total_branches, timeout=5):
             type_a = str(e.type_a).split("'")[1]
             type_b = str(e.type_b).split("'")[1]
             return (False, (Warning, (lineno, type_a, type_b)))
+        else:
+            return (False, (type(e), e))
     cov_result = read_coverage_report()
     for b in cov_result:
         total_branches[b.to_tuple()] = tuple(input_value)
