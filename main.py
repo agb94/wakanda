@@ -1,3 +1,4 @@
+from covgen.type import get_base, _type, POSSIBLE_TYPES
 from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
@@ -11,82 +12,6 @@ import traceback
 import re
 import inspect
 import random
-
-POSSIBLE_TYPES = ["bool", "int", "float", "str", "list", "tuple"]
-
-
-def get_base(type):
-    if type == "int":
-        return 0
-    elif type == "float":
-        return 0.12345
-    elif type == "str":
-        return ""
-    elif type == "list":
-        return []
-    elif type == "tuple":
-        return ()
-    elif type == "bool":
-        return True
-
-
-class _type:
-    def __init__(self, t):
-        self.this = t
-        if t in ["list", "tuple"]:
-            self.elem = []
-        else:
-            self.elem = None
-        self.elem_cnt = 0
-        self.val = None
-        #length str
-
-    def __str__(self):
-        s = self.this
-        if self.elem:
-            str_elem = list(map(lambda e: str(e), self.elem))
-            s += "([{}])".format(",".join(str_elem))
-        return s
-
-    def get(self):
-        # if self.val not None:
-        #     return self.val
-        if self.this in ["int", "float", "bool"]:
-            return get_base(self.this)
-        elif self.this == "str":
-            return " " * self.elem_cnt
-        elif self.this == "list":
-            tmp = []
-            for i in self.elem:
-                tmp.append(i.get())
-            return tmp
-        elif self.this == "tuple":
-            tmp = ()
-            for i in self.elem:
-                tmp += (i.get(),)
-            return tmp
-
-    def add(self, t):
-        assert(self.this in ["list", "tuple"])
-        self.elem.append(_type(t))
-        self.elem_cnt += 1
-
-    def expand(self):
-        if self.this in ["list", "tuple"]:
-            self.elem.append(_type(random.choice(POSSIBLE_TYPES)))
-            self.elem_cnt += 1
-        elif self.this == "str":
-            self.elem_cnt += 1
-        else:
-            return
-
-    def set_elem(self, idx, obj):
-        self.elem[idx] = obj
-
-    def __getitem__(self, num):
-        return self.elem[num]
-
-    # def __str__(self):
 
 def run(function, input_value, total_branches, timeout=5):
     import signal
@@ -145,7 +70,7 @@ def run(function, input_value, total_branches, timeout=5):
                 if function.__name__ in elem:
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
-            types = list(filter(lambda s: "'{}'".format(s) in str(exc_value), POSSIBLE_TYPES))
+            types = list(filter(lambda s: "{}".format(s) in str(exc_value), POSSIBLE_TYPES))
             return (False, (TypeError, (lineno, types)))
         elif type(e) is IndexError:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -162,8 +87,8 @@ def run(function, input_value, total_branches, timeout=5):
                 if function.__name__ in elem:
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
-            type_a = str(e.type_a).split("'")[1]
-            type_b = str(e.type_b).split("'")[1]
+            type_a = globals()[str(e.type_a).split("'")[1]]
+            type_b = globals()[str(e.type_b).split("'")[1]]
             return (False, (Warning, (lineno, [type_a, type_b])))
         else:
             return (False, (type(e), e))
@@ -210,18 +135,17 @@ if __name__ == "__main__":
     target_module = importlib.import_module(os.path.splitext(inst_sourcefile)[0].replace('/', '.'))
 
 
-
+    
     """
     Type Searching
     """
     args_cnt = len(function_node.args.args)
     curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
-    # print(curr_type)
-    curr_input = [type.get() for type in curr_type]
+    curr_input = [t.get() for t in curr_type]
     success = False
     while not success:
-        print([str(t) for t in curr_type])
-        print(curr_input)
+        # print("curr_type: ", [str(t) for t in curr_type])
+        # print("curr_input: ", curr_input)
         success, result = run(target_module.__dict__[args.function], curr_input,
                           total_branches)
         if success:
@@ -249,7 +173,7 @@ if __name__ == "__main__":
                             for i, e in enumerate(t.elem):
                                 t.elem[i] = recursively_change_type(e, target_type, candidate_types)
                             return t
-                        curr_type[i] = recursively_change_type(curr_type[i], types[0], ["str", "list", "tuple"])
+                        curr_type[i] = recursively_change_type(curr_type[i], types[0], [str, list, tuple])
                         curr_input[i] = curr_type[i].get()
                 else:
                     for i in range(args_cnt):
@@ -269,13 +193,13 @@ if __name__ == "__main__":
                     if v in _args:
                         suspicous_inputs.add(_args.index(v))
                 for i in suspicous_inputs:
-                    if curr_type[i].this == "str":
+                    if curr_type[i].this == str:
                         if len(indexes) > 1 or random.random() > 0.5:
-                            curr_type[i] = _type(random.choice(["list", "tuple"]))
+                            curr_type[i] = _type(random.choice([list, tuple]))
                         else:
                             curr_type[i].expand()
                         curr_input[i] = curr_type[i].get()
-                    elif curr_type[i].this in ["list", "tuple"]:
+                    elif curr_type[i].this in [list, tuple]:
                         t = curr_type[i]
                         for index in indexes:
                             if t.elem:
@@ -286,5 +210,6 @@ if __name__ == "__main__":
             else:
                 curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
                 curr_input = [type.get() for type in curr_type]
+    print("type: ", [str(t) for t in curr_type])
+    print("input: ", curr_input)
 
-    print([str(t) for t in curr_type])

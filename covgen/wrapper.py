@@ -1,3 +1,4 @@
+from .type import get_base
 import sys
 
 K = 1
@@ -54,7 +55,7 @@ def unaryop(bid, depth, op, operand):
 
 def value(bid, depth, v):
     result = bool(v)
-    write_cov_report(bid, depth, result, 'V', -abs(v), abs(v))
+    write_cov_report(bid, depth, result, 'V', -abs(dist(v)), abs(dist(v)))
     return result
 
 def iter(bid, depth, expr):
@@ -63,7 +64,9 @@ def iter(bid, depth, expr):
     return result
 
 ## Suppose a, b are given with 'valid' type -> one of int, float, str, list, tuple
-def dist(a, b):
+def dist(a, b = None):
+    b = get_base(type(a))
+
     # numerical values
     if (type(a) is int or type(a) is float or type(a) is bool) and (type(b) is int or type(b) is float or type(b) is bool) :
         return a - b
