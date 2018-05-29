@@ -51,8 +51,10 @@ class _type:
     def get(self):
         # if self.val not None:
         #     return self.val
-        if self.this in ["int", "float", "str", "bool"]:
+        if self.this in ["int", "float", "bool"]:
             return get_base(self.this)
+        elif self.this == "str":
+            return " " * self.elem_cnt
         elif self.this == "list":
             tmp = []
             for i in self.elem:
@@ -70,10 +72,13 @@ class _type:
         self.elem_cnt += 1
 
     def expand(self):
-        assert(self.this in ["list", "tuple"])
-        self.elem.append(_type(random.choice(POSSIBLE_TYPES)))
-        self.elem_cnt += 1
-
+        if self.this in ["list", "tuple"]:
+            self.elem.append(_type(random.choice(POSSIBLE_TYPES)))
+            self.elem_cnt += 1
+        elif self.this == "str":
+            self.elem_cnt += 1
+        else:
+            return
 
     def set_elem(self, idx, obj):
         self.elem[idx] = obj
@@ -141,17 +146,16 @@ def run(function, input_value, total_branches, timeout=5):
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
             types = list(filter(lambda s: "'{}'".format(s) in str(exc_value), POSSIBLE_TYPES))
-            #types = list(map(lambda x: x.strip("'"),
-            #            filter(lambda x: x.startswith("'") and x.endswith("'"),
-            #                str(exc_value).split(':')[-1].strip().split())))
             return (False, (TypeError, (lineno, types)))
         elif type(e) is IndexError:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
                 if function.__name__ in elem:
                     lineno = int(elem.split(',')[1].strip().split()[-1])
+                    p = re.compile("\[(\d+)\]")
+                    indexes = list(map(lambda i: int(i), p.findall(elem)))
                     break
-            return (False, (IndexError, lineno))
+            return (False, (IndexError, (lineno, indexes)))
         elif type(e) is MyError: #Need to distinguish other errors : AttributeError ...
             exc_type, exc_value, exc_traceback = sys.exc_info()
             for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
@@ -160,7 +164,7 @@ def run(function, input_value, total_branches, timeout=5):
                     break
             type_a = str(e.type_a).split("'")[1]
             type_b = str(e.type_b).split("'")[1]
-            return (False, (Warning, (lineno, type_a, type_b)))
+            return (False, (Warning, (lineno, [type_a, type_b])))
         else:
             return (False, (type(e), e))
     cov_result = read_coverage_report()
@@ -216,7 +220,7 @@ if __name__ == "__main__":
     curr_input = [type.get() for type in curr_type]
     success = False
     while not success:
-        print([t.this for t in curr_type])
+        print([str(t) for t in curr_type])
         print(curr_input)
         success, result = run(target_module.__dict__[args.function], curr_input,
                           total_branches)
@@ -225,7 +229,7 @@ if __name__ == "__main__":
             break
         else:
             error_type, error_info = result
-            if error_type == TypeError:
+            if error_type == TypeError or error_type == Warning:
                 # Type Error
                 lineno, types = error_info
                 suspicous_inputs = set()
@@ -236,9 +240,17 @@ if __name__ == "__main__":
                         suspicous_inputs.add(_args.index(v))
                 if len(types) == 1:
                     for i in suspicous_inputs:
-                        if curr_type[i].this == types[0]:
-                            curr_type[i] = _type(random.choice(["str", "list", "tuple"]))
-                            curr_input[i] = curr_type[i].get()
+                        def recursively_change_type(t, target_type, candidate_types):
+                            if t.this == target_type:
+                                t = _type(random.choice(candidate_types))
+                                return t
+                            if not t.elem:
+                                return t
+                            for i, e in enumerate(t.elem):
+                                t.elem[i] = recursively_change_type(e, target_type, candidate_types)
+                            return t
+                        curr_type[i] = recursively_change_type(curr_type[i], types[0], ["str", "list", "tuple"])
+                        curr_input[i] = curr_type[i].get()
                 else:
                     for i in range(args_cnt):
                         change_probability = 1 if i in suspicous_inputs else 0.1
@@ -250,7 +262,7 @@ if __name__ == "__main__":
                                 curr_type[i] = _type(random.choice(POSSIBLE_TYPES))
                                 curr_input[i] = curr_type[i].get()
             elif error_type == IndexError:
-                lineno = error_info
+                lineno, indexes = error_info
                 suspicous_inputs = set()
                 _args = inspect.getargspec(target_module.__dict__[args.function]).args
                 for v in profiler.line_and_vars[lineno]:
@@ -258,32 +270,19 @@ if __name__ == "__main__":
                         suspicous_inputs.add(_args.index(v))
                 for i in suspicous_inputs:
                     if curr_type[i].this == "str":
-                        curr_input[i] = expand_sequence(curr_input[i])
+                        if len(indexes) > 1 or random.random() > 0.5:
+                            curr_type[i] = _type(random.choice(["list", "tuple"]))
+                        else:
+                            curr_type[i].expand()
+                        curr_input[i] = curr_type[i].get()
                     elif curr_type[i].this in ["list", "tuple"]:
-                        curr_type[i].expand()
+                        t = curr_type[i]
+                        for index in indexes:
+                            if t.elem:
+                                if index < len(t.elem):
+                                    t = t.elem[index]
+                        t.expand()
                         curr_input[i] = curr_type[i].get()
-            elif error_type == Warning:
-                lineno, type_a, type_b = error_info
-                suspicous_inputs = set()
-                _args = inspect.getargspec(target_module.__dict__[args.function]).args
-                for v in profiler.line_and_vars[lineno]:
-                    if v in _args:
-                        suspicous_inputs.add(_args.index(v))
-                        #Need to know index number -> last idx is suspicious
-                for i in suspicous_inputs:
-                    if curr_type[i].this == "str":
-                        curr_type[i] = _type(random.choice(["list", "tuple"]))
-                        curr_input[i] = curr_type[i].get()
-                        continue
-                    elif curr_type[i].elem_cnt == 0:
-                        curr_type[i] = _type(random.choice(POSSIBLE_TYPES))
-                        curr_input[i] = curr_type[i].get()
-                        continue
-                    if curr_type[i][-1].this == type_a:
-                        curr_type[i].set_elem(-1, _type(type_b))
-                    elif curr_type[i][-1].this == type_b:
-                        curr_type[i].set_elem(-1, _type(type_a))
-                    curr_input[i] = curr_type[i].get()
             else:
                 curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
                 curr_input = [type.get() for type in curr_type]
