@@ -3,7 +3,7 @@ from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
 from covgen.wrapper import MyError
-
+from copy import deepcopy
 import argparse
 import importlib
 import os
@@ -144,9 +144,9 @@ if __name__ == "__main__":
     curr_input = [t.get() for t in curr_type]
     success = False
     while not success:
-        # print("curr_type: ", [str(t) for t in curr_type])
-        # print("curr_input: ", curr_input)
-        success, result = run(target_module.__dict__[args.function], curr_input,
+        print("curr_type: ", [str(t) for t in curr_type])
+        print("curr_input: ", curr_input)
+        success, result = run(target_module.__dict__[args.function], deepcopy(curr_input),
                           total_branches)
         if success:
             # No Error
