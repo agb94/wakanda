@@ -35,9 +35,18 @@ class _type:
         self.this = t
         if t in ["list", "tuple"]:
             self.elem = []
+        else:
+            self.elem = None
         self.elem_cnt = 0
         self.val = None
         #length str
+
+    def __str__(self):
+        s = self.this
+        if self.elem:
+            str_elem = list(map(lambda e: str(e), self.elem))
+            s += "([{}])".format(",".join(str_elem))
+        return s
 
     def get(self):
         # if self.val not None:
@@ -196,13 +205,11 @@ if __name__ == "__main__":
     cfg = get_cfg(function_node, profiler.branches)
     target_module = importlib.import_module(os.path.splitext(inst_sourcefile)[0].replace('/', '.'))
 
-    # Set target branch
-    target_branch = (1, True)
-    # Set input
-    # function_input = ["a", 2, 3]
-    # Run the instrumented function
 
 
+    """
+    Type Searching
+    """
     args_cnt = len(function_node.args.args)
     curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
     # print(curr_type)
@@ -215,7 +222,6 @@ if __name__ == "__main__":
                           total_branches)
         if success:
             # No Error
-            cov_result = result
             break
         else:
             error_type, error_info = result
@@ -282,4 +288,4 @@ if __name__ == "__main__":
                 curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
                 curr_input = [type.get() for type in curr_type]
 
-    print([t.this for t in curr_type])
+    print([str(t) for t in curr_type])
