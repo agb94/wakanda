@@ -1,4 +1,4 @@
-from covgen.type import get_base, _type, POSSIBLE_TYPES
+from covgen.type import get_base, str_to_type_class, _type, POSSIBLE_TYPES
 from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
@@ -87,8 +87,8 @@ def run(function, input_value, total_branches, timeout=5):
                 if function.__name__ in elem:
                     lineno = int(elem.split(',')[1].strip().split()[-1])
                     break
-            type_a = globals()[str(e.type_a).split("'")[1]]
-            type_b = globals()[str(e.type_b).split("'")[1]]
+            type_a = str_to_type_class(str(e.type_a).split("'")[1])
+            type_b = str_to_type_class(str(e.type_b).split("'")[1])
             return (False, (Warning, (lineno, [type_a, type_b])))
         else:
             return (False, (type(e), e))
