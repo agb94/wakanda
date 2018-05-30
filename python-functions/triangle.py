@@ -7,6 +7,9 @@ class TriangleType(Enum):
 
 
 def classify_triangle(a, b, c):
+    assert type(a) == int or type(a) == float
+    assert type(b) == int or type(b) == float
+    assert type(c) == int or type(c) == float
     # Sort the sides so that a <= b <= c
     if a > b:
         tmp = a

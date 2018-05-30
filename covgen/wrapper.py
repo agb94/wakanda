@@ -1,4 +1,12 @@
+from .type import get_base
+import sys
+
 K = 1
+
+class MyError(Exception):
+    def __init__(self, type_a, type_b):
+        self.type_a = type_a
+        self.type_b = type_b
 
 def write_cov_report(bid:int, depth:int, result: bool, op: str, branch_distance_true: int, branch_distance_false: int):
     assert isinstance(bid, int)
@@ -47,7 +55,7 @@ def unaryop(bid, depth, op, operand):
 
 def value(bid, depth, v):
     result = bool(v)
-    write_cov_report(bid, depth, result, 'V', -abs(v), abs(v))
+    write_cov_report(bid, depth, result, 'V', -abs(dist(v)), abs(dist(v)))
     return result
 
 def iter(bid, depth, expr):
@@ -56,9 +64,11 @@ def iter(bid, depth, expr):
     return result
 
 ## Suppose a, b are given with 'valid' type -> one of int, float, str, list, tuple
-def dist(a, b):
+def dist(a, b = None):
+    b = get_base(type(a))
+
     # numerical values
-    if (type(a) is int or type(a) is float) and (type(b) is int or type(b) is float) :
+    if (type(a) is int or type(a) is float or type(a) is bool) and (type(b) is int or type(b) is float or type(b) is bool) :
         return a - b
 
     # single characters
@@ -76,6 +86,8 @@ def dist(a, b):
         else:
             return (len(a) - len(b)) * 100
 
-    # boolean type values
-    elif (type(a) is bool and type(b) is bool):
-        return a - b
+    else:
+        raise MyError(type(a), type(b))
+    # # boolean type values
+    # elif (type(a) is bool and type(b) is bool):
+    #     return a - b
