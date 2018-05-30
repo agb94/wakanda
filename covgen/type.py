@@ -18,6 +18,7 @@ def get_base(type):
 
 class _type:
     def __init__(self, t):
+        assert t in POSSIBLE_TYPES
         self.this = t
         if t in [list, tuple]:
             self.elem = []

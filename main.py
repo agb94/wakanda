@@ -171,7 +171,7 @@ if __name__ == "__main__":
                             if not t.elem:
                                 return t
                             for i, e in enumerate(t.elem):
-                                t.elem[i] = recursively_change_type(e, target_type, candidate_types)
+                                t.set_elem(i, recursively_change_type(e, target_type, candidate_types))
                             return t
                         curr_type[i] = recursively_change_type(curr_type[i], types[0], [str, list, tuple])
                         curr_input[i] = curr_type[i].get()
