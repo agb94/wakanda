@@ -25,6 +25,11 @@ def str_to_type_class(s):
     else:
         return globals()[s]
 
+class MyError(Exception):
+    def __init__(self, type_a, type_b):
+        self.type_a = type_a
+        self.type_b = type_b
+
 class _type:
     def __init__(self, t):
         assert t in POSSIBLE_TYPES

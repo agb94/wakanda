@@ -1,12 +1,12 @@
 def get_fitness(cfg, target_branch, cov_result):
     dependency_chain = cfg[target_branch[0]] + [target_branch]
-    cov_result_tuples = list(map(lambda b: b.to_tuple(), cov_result))
+    covered_branches = list(map(lambda b: b.to_branch(), cov_result))
     div_point = None
     approach_level = len(dependency_chain)
 
     for branch in dependency_chain:
         opposite = (branch[0], not branch[1])
-        if branch not in cov_result_tuples and opposite in cov_result_tuples:
+        if branch not in covered_branches and opposite in covered_branches:
             # Divergence Point
             div_point = branch
             break

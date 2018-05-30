@@ -1,8 +1,8 @@
-from covgen.type import get_base, str_to_type_class, _type, POSSIBLE_TYPES
+from covgen.runner import Runner
 from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
-from covgen.wrapper import MyError
+from covgen.type import get_base, str_to_type_class, _type, POSSIBLE_TYPES
 from copy import deepcopy
 import argparse
 import importlib
@@ -13,91 +13,6 @@ import re
 import inspect
 import random
 
-def run(function, input_value, total_branches, timeout=5):
-    import signal
-
-    class Branch:
-        def __init__(self, branch_id: int, depth: int, predicate_result: bool,
-                     op: str, branch_distance: int):
-            self.id = branch_id
-            self.depth = depth
-            self.predicate_result = predicate_result
-            self.op = op
-            self.branch_distance = branch_distance
-
-        def __str__(self):
-            return "{}\t{}\t{}\t{}\t{}".format(self.id, self.depth,
-                                               self.predicate_result, self.op,
-                                               self.branch_distance)
-
-        def to_tuple(self):
-            return (self.id, self.predicate_result)
-
-        @classmethod
-        def parse_line(cls, l: str):
-            cols = l.strip().split('\t')
-            return cls(
-                int(cols[0]),
-                int(cols[1]),
-                bool(int(cols[2])), cols[3],
-                {True: float(cols[4]),
-                 False: float(cols[5])})
-
-    def clear_coverage_report():
-        open('.cov', 'w').close()
-
-    def read_coverage_report():
-        cov_result = list()
-        with open('.cov', 'r') as cov_report:
-            for l in cov_report:
-                result = l.strip().split('\t')
-                cov_result.append(Branch.parse_line(l))
-        return cov_result
-
-    def handler(signum, frame):
-        raise Exception("end of time")
-
-    clear_coverage_report()
-
-    signal.signal(signal.SIGALRM, handler)
-    signal.alarm(timeout)
-    try:
-        function(*input_value)
-    except Exception as e:
-        if type(e) is TypeError:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                if function.__name__ in elem:
-                    lineno = int(elem.split(',')[1].strip().split()[-1])
-                    break
-            types = list(filter(lambda s: "'{}'".format(s.__name__) in str(exc_value), POSSIBLE_TYPES))
-            return (False, (TypeError, (lineno, types)))
-        elif type(e) is IndexError:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                if function.__name__ in elem:
-                    lineno = int(elem.split(',')[1].strip().split()[-1])
-                    p = re.compile("\[(\d+)\]")
-                    indexes = list(map(lambda i: int(i), p.findall(elem)))
-                    break
-            return (False, (IndexError, (lineno, indexes)))
-        elif type(e) is MyError: #Need to distinguish other errors : AttributeError ...
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                if function.__name__ in elem:
-                    lineno = int(elem.split(',')[1].strip().split()[-1])
-                    break
-            type_a = str_to_type_class(str(e.type_a).split("'")[1])
-            type_b = str_to_type_class(str(e.type_b).split("'")[1])
-            return (False, (Warning, (lineno, [type_a, type_b])))
-        else:
-            return (False, (type(e), e))
-    cov_result = read_coverage_report()
-    for b in cov_result:
-        total_branches[b.to_tuple()] = tuple(input_value)
-    return (True, cov_result)
-
-
 def next_target(branches, cannot_cover):
     not_covered = list(
         filter(lambda b: not b[1] and not b[0] in cannot_cover,
@@ -106,7 +21,6 @@ def next_target(branches, cannot_cover):
         return not_covered[0][0]
     else:
         return None
-
 
 def expand_sequence(value):
     if isinstance(value, str):
@@ -134,8 +48,8 @@ if __name__ == "__main__":
     cfg = get_cfg(function_node, profiler.branches)
     target_module = importlib.import_module(os.path.splitext(inst_sourcefile)[0].replace('/', '.'))
 
+    runner = Runner(target_module.__dict__[args.function], total_branches)
 
-    
     """
     Type Searching
     """
@@ -143,11 +57,11 @@ if __name__ == "__main__":
     curr_type = [_type(random.choice(POSSIBLE_TYPES)) for i in range(args_cnt)]
     curr_input = [t.get() for t in curr_type]
     success = False
+    
     while not success:
         print("curr_type: ", [str(t) for t in curr_type])
         print("curr_input: ", curr_input)
-        success, result = run(target_module.__dict__[args.function], deepcopy(curr_input),
-                          total_branches)
+        success, result = runner.run(deepcopy(curr_input))
         if success:
             # No Error
             break
