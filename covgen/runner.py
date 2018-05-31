@@ -1,4 +1,4 @@
-from .type import MyError, POSSIBLE_TYPES
+from .type import MyError, POSSIBLE_TYPES, _type
 import signal
 import sys
 import traceback
@@ -83,9 +83,9 @@ class Runner:
                     if self.function.__name__ in elem:
                         lineno = int(elem.split(',')[1].strip().split()[-1])
                         break
-                type_a = str_to_type_class(str(e.type_a).split("'")[1])
-                type_b = str_to_type_class(str(e.type_b).split("'")[1])
-                return (False, (Warning, (lineno, [type_a, type_b])))
+                type_a = _type.str_to_type_class(str(e.type_a).split("'")[1])
+                type_b = _type.str_to_type_class(str(e.type_b).split("'")[1])
+                return (False, (MyError, (lineno, [type_a, type_b])))
             else:
                 return (False, (type(e), e))
         cov_results = CovResult.read()
