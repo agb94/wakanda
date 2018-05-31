@@ -1,4 +1,4 @@
-from .type import get_base
+from .type import _type
 import sys
 
 K = 1
@@ -60,7 +60,7 @@ def iter(bid, depth, expr):
 
 ## Suppose a, b are given with 'valid' type -> one of int, float, str, list, tuple
 def dist(a, b = None):
-    b = get_base(type(a))
+    b = _type(type(a)).get()
 
     # numerical values
     if (type(a) is int or type(a) is float or type(a) is bool) and (type(b) is int or type(b) is float or type(b) is bool) :
