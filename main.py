@@ -22,15 +22,6 @@ def next_target(branches, cannot_cover):
     else:
         return None
 
-def expand_sequence(value):
-    if isinstance(value, str):
-        value += " "
-    elif isinstance(value, list):
-        value.append(get_base(random.choice(POSSIBLE_TYPES)))
-    elif isinstance(value, tuple):
-        value += (get_base(random.choice(POSSIBLE_TYPES)), )
-    return value
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
     parser.add_argument(
