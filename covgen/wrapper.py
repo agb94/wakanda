@@ -3,11 +3,6 @@ import sys
 
 K = 1
 
-class MyError(Exception):
-    def __init__(self, type_a, type_b):
-        self.type_a = type_a
-        self.type_b = type_b
-
 def write_cov_report(bid:int, depth:int, result: bool, op: str, branch_distance_true: int, branch_distance_false: int):
     assert isinstance(bid, int)
     assert isinstance(depth, int)

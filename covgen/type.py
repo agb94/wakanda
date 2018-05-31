@@ -1,23 +1,38 @@
 import random
 
-POSSIBLE_TYPES = [bool, int, float, str, list, tuple]
+POSSIBLE_TYPES = [bool, int, float, str, list, tuple, type(None)]
 
-def get_base(type):
-    if type == int:
+def get_base(t):
+    assert t in POSSIBLE_TYPES
+    if t == int:
         return 0
-    elif type == float:
+    elif t == float:
         return 0.12345
-    elif type == str:
+    elif t == str:
         return ""
-    elif type == list:
+    elif t == list:
         return []
-    elif type == tuple:
+    elif t == tuple:
         return ()
-    elif type == bool:
+    elif t == bool:
         return False
+    elif t == type(None):
+        return None
+
+def str_to_type_class(s):
+    if s == 'NoneType':
+        return type(None)
+    else:
+        return globals()[s]
+
+class MyError(Exception):
+    def __init__(self, type_a, type_b):
+        self.type_a = type_a
+        self.type_b = type_b
 
 class _type:
     def __init__(self, t):
+        assert t in POSSIBLE_TYPES
         self.this = t
         if t in [list, tuple]:
             self.elem = []
