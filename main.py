@@ -25,8 +25,6 @@ if __name__ == "__main__":
 
     # Instrument & Get CFG
     profiler = Profiler()
-    with open(args.sourcefile, 'r') as f:
-        print(f.read())
     inst_sourcefile = os.path.join(
         os.path.dirname(args.sourcefile),
         'inst_' + os.path.basename(args.sourcefile))
@@ -44,4 +42,3 @@ if __name__ == "__main__":
     types = _type.search(runner, num_args, profiler.line_and_vars)
     print("type: ", [str(t) for t in types])
     print("init value: ", [t.get() for t in types])
-    print("===========================================")
