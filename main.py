@@ -3,6 +3,8 @@ from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
 from covgen.type import _type
+from covgen.neighbour import get_Neighbours
+from copy import deepcopy
 import argparse
 import importlib
 import os
@@ -42,3 +44,65 @@ if __name__ == "__main__":
     types = _type.search(runner, num_args, profiler.line_and_vars)
     print("type: ", [str(t) for t in types])
     print("init value: ", [t.get() for t in types])
+
+
+    # Search Input Value with determined input type
+    print("\nValue Search")
+    print(total_branches)
+    
+    #vals = [t.get() for t in types]
+    vals = [0, 0, 0]
+
+    cannot_cover = set()
+    target_branch = next_target(total_branches, cannot_cover)
+    while target_branch:
+        covered = False
+
+        min_fitness = 999999999999
+        min_fitness_vals = vals
+
+        while not covered:
+            neighbours = get_Neighbours(deepcopy(min_fitness_vals), 2)
+            for v in neighbours:
+                success, result = runner.run(v)
+                fitness = get_fitness(cfg, target_branch, result)
+                if fitness[0] + fitness[1] < min_fitness:
+                    min_fitness = fitness[0] + fitness[1]
+                    min_fitness_vals = v
+                
+                if total_branches[target_branch]:
+                    covered = True
+                    break
+
+
+
+
+        # if not covered:
+        #     print("not covered")
+
+        target_branch = next_target(total_branches, cannot_cover)
+
+
+
+    # Print Result
+    print()
+    print(total_branches)
+    num_branch = len(total_branches)
+    if (num_branch % 2) != 0:
+        raise Exception("Something wrong in total_branches")
+    num_branch = int(num_branch / 2)
+
+    for n in range(1, num_branch+1):
+        branch_T = (n, True)
+        if total_branches[branch_T]:
+            test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_T]))
+        else:
+            test_input_str = '-'
+        print("{}: {}".format(str(n)+'T', test_input_str))
+
+        branch_F = (n, False)
+        if total_branches[branch_F]:
+            test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_F]))
+        else:
+            test_input_str = '-'
+        print("{}: {}".format(str(n)+'F', test_input_str))
