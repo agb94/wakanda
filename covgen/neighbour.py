@@ -12,24 +12,47 @@ def get_Neighbours(vals, n):
 		if type(v) is int:
 			res = []
 			for i in range(-n, n+1):
-				res.append(v + i)
+				res.append([v + i])
 			return res
 
-#		elif type(v) is float:
+		# needs to be changed
+		elif type(v) is float:
+			res = []
+			for i in range(-n, n+1):
+				res.append([v + i*0.00000000000001])
+			return res
 
+		elif type(v) is str and len(v) == 1:
+			res = []
+			for i in range(-n, n+1):
+				res.append([chr(ord(v) + i)])
+			return res
 
-#		elif type(v) is str and
+		elif type(v) is bool:
+			return [True, False]
 
+		elif type(v) is str or type(v) is list or type(v) is tuple:
+			nei = get_Neighbours(v, n)
+			lst = []
+			for e in nei:
+				lst.append([e])
 
+			return lst
 
 
 
 	else:
 		lst = []
 		for v in vals:
-			lst.append(get_Neighbours([v], n))
+			neighbour = get_Neighbours([v], n)
+			l = []
+			for e in neighbour:
+				if (len(e) != 1):
+					raise Exception("Something wrong in get_Neighbours")
+				l.append(e[0])
+			lst.append(l)
 		pd = itertools.product(*lst)
 		res = []
 		for e in pd:
-			res.append(e)
+			res.append(list(e))
 		return res
