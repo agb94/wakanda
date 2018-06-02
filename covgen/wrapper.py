@@ -119,7 +119,7 @@ def dist2(a, b = None):
 def dist2(a, b = None):
     
     def value(x):
-        if type(x) is int or type(x) is float or type(x) if bool:
+        if type(x) is int or type(x) is float or type(x) is bool:
             return x
 
         elif type(x) is str and len(x) == 1:
