@@ -50,8 +50,8 @@ if __name__ == "__main__":
     print("\nValue Search")
     print(total_branches)
     
-    #vals = [t.get() for t in types]
-    vals = [0, 0, 0]
+    vals = [t.get() for t in types]
+    #vals = [0, 0, 0]
 
     cannot_cover = set()
     target_branch = next_target(total_branches, cannot_cover)
@@ -73,12 +73,6 @@ if __name__ == "__main__":
                 if total_branches[target_branch]:
                     covered = True
                     break
-
-
-
-
-        # if not covered:
-        #     print("not covered")
 
         target_branch = next_target(total_branches, cannot_cover)
 
