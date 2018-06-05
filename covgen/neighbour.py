@@ -29,13 +29,16 @@ def get_Neighbours(vals, n):
             return res
 
         elif type(v) is bool:
-            return [True, False]
+            return [[True], [False]]
 
         elif type(v) is str or type(v) is list or type(v) is tuple:
             nei = get_Neighbours(v, n)
             lst = []
             for e in nei:
-                lst.append([e])
+                if type(v) is str:
+                    lst.append([''.join(e)])
+                else:
+                    lst.append([e])
 
             return lst
 
