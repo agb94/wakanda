@@ -108,30 +108,40 @@ class _type:
             if error_type == TypeError or error_type == MyError:
                 lineno, types = error_info
                 suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
-                for i in suspicous_inputs:
-                    if len(types) == 1:
-                        # It might be a subscription error. So, we change the type into sequence types.
-                        curr_types[i] = curr_types[i].recursively_change_type(types[0], [str, list, tuple])
-                    elif curr_types[i].this in types:
-                        curr_types[i] = _type.get_random(types)
+
+                if suspicous_inputs and random.random() < 0.8:
+                    i = random.choice(suspicous_inputs)
+                else:
+                    i = random.randrange(num_args)
+
+                if len(types) == 1:
+                    # It might be a subscription error. So, we change the type into sequence types.
+                    curr_types[i] = curr_types[i].recursively_change_type(types[0], [str, list, tuple])
+                elif curr_types[i].this in types:
+                    curr_types[i] = _type.get_random(types)
             # Case2: IndexError
             elif error_type == IndexError:
                 lineno, indexes = error_info
                 suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
-                for i in suspicous_inputs:
-                    if curr_types[i].this == str:
-                        if len(indexes) > 1:
-                            curr_types[i] = _type.get_random([list, tuple])
+
+                if suspicous_inputs and random.random() < 0.8:
+                    i = random.choice(suspicous_inputs)
+                else:
+                    i = random.randrange(num_args)
+
+                if curr_types[i].this == str:
+                    if len(indexes) > 1:
+                        curr_types[i] = _type.get_random([list, tuple])
+                    else:
+                        curr_types[i].expand()
+                elif curr_types[i].this in [list, tuple]:
+                    t = curr_types[i]
+                    for index in indexes:
+                        if t.elem and index < len(t.elem):
+                            t = t.elem[index]
                         else:
-                            curr_types[i].expand()
-                    elif curr_types[i].this in [list, tuple]:
-                        t = curr_types[i]
-                        for index in indexes:
-                            if t.elem and index < len(t.elem):
-                                t = t.elem[index]
-                            else:
-                                break
-                        t.expand()
+                            break
+                    t.expand()
             # Case3: Other Error Types
             else:
                 curr_types = [_type.get_random() for i in range(num_args)]

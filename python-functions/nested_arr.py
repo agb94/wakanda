@@ -1,5 +1,6 @@
 def test(l):
-    if l[1][3] == 100:
+    s = l
+    if s[1][3] == 100:
         return
     else:
         return
