@@ -2,7 +2,8 @@ from .utils import get_index_or_used_args
 from copy import deepcopy
 import random
 
-POSSIBLE_TYPES = [bool, int, float, str, list, tuple, type(None)]
+# POSSIBLE_TYPES = [bool, int, float, str, list, tuple, type(None)]
+POSSIBLE_TYPES = [bool, int, float, str, list, tuple]
 
 class MyError(Exception):
     def __init__(self, type_a, type_b):

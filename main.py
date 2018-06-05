@@ -65,6 +65,8 @@ if __name__ == "__main__":
             neighbours = get_Neighbours(deepcopy(min_fitness_vals), 2)
             for v in neighbours:
                 success, result = runner.run(v)
+                if not success:
+                    continue
                 fitness = get_fitness(cfg, target_branch, result)
                 if fitness[0] + fitness[1] < min_fitness:
                     min_fitness = fitness[0] + fitness[1]
