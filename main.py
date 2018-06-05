@@ -60,9 +60,16 @@ if __name__ == "__main__":
 
         min_fitness = 999999999999
         min_fitness_vals = vals
+        count = 0
 
         while not covered:
             neighbours = get_Neighbours(deepcopy(min_fitness_vals), 2)
+            count += 1
+            print(count)
+            if count > 100:
+                cannot_cover.add(target_branch)
+                break
+
             for v in neighbours:
                 success, result = runner.run(v)
                 if not success:
@@ -78,7 +85,7 @@ if __name__ == "__main__":
 
         target_branch = next_target(total_branches, cannot_cover)
 
-
+    print("\nEnd of Value Search")
 
     # Print Result
     print()
