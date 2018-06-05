@@ -89,6 +89,8 @@ class Runner:
             else:
                 return (False, (type(e), e))
         cov_results = CovResult.read()
-        for b in cov_results:
-            self.total_branches[b.to_branch()] = tuple(input_value)
+        for cov_result in cov_results:
+            branch = cov_result.to_branch()
+            if branch[0] > 0:
+                self.total_branches[branch] = tuple(input_value)
         return (True, cov_results)
