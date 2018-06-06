@@ -8,6 +8,13 @@ from copy import deepcopy
 import argparse
 import importlib
 import os
+import random
+import sys
+
+TYPE_SEARCH_LIMIT = 100
+NUM_TYPE_CANDIDATES = 20
+NUM_INPUT_CANDIDATES = 20
+VALUE_SEARCH_LIMIT = 100
 
 def next_target(branches, cannot_cover):
     not_covered = list(
@@ -18,6 +25,14 @@ def next_target(branches, cannot_cover):
     else:
         return None
 
+def initilizer(input_types, constants):
+    values = [t.get() for t in input_types]
+    for i, value in enumerate(values):
+        constant_list = constants[type(value)]
+        constant_list.append(value)
+        values[i] = random.choice(constant_list)
+    return values
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
     parser.add_argument(
@@ -25,6 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('function', type=str, help='target function name')
     args = parser.parse_args()
 
+    print("INPUT GENERATOR for " + args.sourcefile)
     # Instrument & Get CFG
     profiler = Profiler()
     inst_sourcefile = os.path.join(
@@ -40,56 +56,83 @@ if __name__ == "__main__":
     runner = Runner(target_function, total_branches)
 
     # Search Input Type
+    print("Start type search.......")
     num_args = len(function_node.args.args)
-    types = _type.search(runner, num_args, profiler.line_and_vars)
-    print("type: ", [str(t) for t in types])
-    print("init value: ", [t.get() for t in types])
-
+    type_candidates = list()
+    for i in range(TYPE_SEARCH_LIMIT):
+        types = _type.search(runner, num_args, profiler.line_and_vars)
+        if types not in type_candidates:
+            type_candidates.append(types)
+    type_candidates.sort()
+    type_candidates = type_candidates[:NUM_TYPE_CANDIDATES]
+    print("{} type candidates found.".format(len(type_candidates)))
+    print()
 
     # Search Input Value with determined input type
-    print("\nValue Search")
-    print(total_branches)
-    
-    vals = [t.get() for t in types]
-    #vals = [0, 0, 0]
+    print("Start value search......")
 
     cannot_cover = set()
     target_branch = next_target(total_branches, cannot_cover)
     while target_branch:
         covered = False
+        for types in type_candidates:
+            print("TYPE: {}".format(str([str(t) for t in types])))
+            # Initialize
+            min_fitness = sys.maxsize
+            min_fitness_vals = None
 
-        min_fitness = 999999999999
-        min_fitness_vals = vals
-        count = 0
-
-        while not covered:
-            neighbours = get_Neighbours(deepcopy(min_fitness_vals), 2)
-            count += 1
-            print(count)
-            if count > 100:
-                cannot_cover.add(target_branch)
-                break
-
-            for v in neighbours:
-                success, result = runner.run(v)
+            # Select best initial input among the input candidates
+            for i in range(NUM_INPUT_CANDIDATES):
+                vals = initilizer(types, profiler.constants)
+                success, result = runner.run(vals)
                 if not success:
                     continue
-                fitness = get_fitness(cfg, target_branch, result)
-                if fitness[0] + fitness[1] < min_fitness:
-                    min_fitness = fitness[0] + fitness[1]
-                    min_fitness_vals = v
-                
-                if total_branches[target_branch]:
-                    covered = True
-                    break
+                fit = get_fitness(cfg, target_branch, result)
+                if fit < min_fitness:
+                    min_fitness, min_fitness_vals = fit, vals
 
+            if not min_fitness_vals:
+                continue
+            
+            print("Initial vals: {}".format(str(vals)))
+            # Start searching
+            count = 0
+            while not covered and count < VALUE_SEARCH_LIMIT:
+                neighbours = get_Neighbours(deepcopy(min_fitness_vals), 1) 
+                for v in neighbours:
+                    print("vals: {}".format(str(v)))
+                    success, result = runner.run(v)
+                    if not success:
+                        continue
+                    fit = get_fitness(cfg, target_branch, result)
+                    if fit < min_fitness:
+                        min_fitness = fit
+                        min_fitness_vals = v
+
+                    if total_branches[target_branch]:
+                        print("{}/{} branches have been covered.".format(
+                            len(list(filter(lambda v: v, total_branches.values()))),
+                            len(total_branches)))
+                        covered = True
+                        break
+                    
+                count += 1
+            
+            # Check whether the search succeeded
+            # If covered, stop searching a value for the branch
+            if covered:
+                break
+
+        # If the branch hasn't been covered for all candidate types, stop searching
+        if not covered:
+            cannot_cover.add(target_branch)
+
+        # Change the target branch
         target_branch = next_target(total_branches, cannot_cover)
-
-    print("\nEnd of Value Search")
 
     # Print Result
     print()
-    print(total_branches)
+    print("RESULT")
     num_branch = len(total_branches)
     if (num_branch % 2) != 0:
         raise Exception("Something wrong in total_branches")
@@ -109,3 +152,6 @@ if __name__ == "__main__":
         else:
             test_input_str = '-'
         print("{}: {}".format(str(n)+'F', test_input_str))
+
+    print("Done.")
+    print("============================================")

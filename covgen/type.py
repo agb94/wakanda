@@ -4,6 +4,7 @@ import random
 
 # POSSIBLE_TYPES = [bool, int, float, str, list, tuple, type(None)]
 POSSIBLE_TYPES = [bool, int, float, str, list, tuple]
+TYPE_PRIORITY = [int, bool, tuple, list, float, str]
 
 class MyError(Exception):
     def __init__(self, type_a, type_b):
@@ -19,7 +20,7 @@ class _type:
         else:
             self.elem = None
         self.elem_cnt = 0
-        self.val = None
+        # self.val = None
 
     def __str__(self):
         s = self.this.__name__
@@ -27,6 +28,27 @@ class _type:
             str_elem = list(map(lambda e: str(e), self.elem))
             s += "([{}])".format(",".join(str_elem))
         return s
+
+    def __eq__(self, other):
+        return self.this == other.this and self.elem == other.elem
+    
+    def __ne__(self, other):
+        return not self.__eq__(self, other)
+
+    def __lt__(self, other):
+        if (TYPE_PRIORITY.index(self.this) == TYPE_PRIORITY.index(other.this)) and (self.elem and other.elem):
+            return self.elem < other.elem
+        else:
+            return TYPE_PRIORITY.index(self.this) < TYPE_PRIORITY.index(other.this)
+    
+    def __le__(self, other):
+        return self.__lt__(self, other) or self.__eq__(self, other)
+
+    def __gt__(self, other):
+        return not self.__le__(self, other)
+    
+    def __ge__(self, other):
+        return not self.__lt__(self, other)
 
     def get(self):
         # if self.val not None:
