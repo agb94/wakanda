@@ -1,4 +1,5 @@
 from .type import MyError, POSSIBLE_TYPES, _type
+from copy import deepcopy
 import signal
 import sys
 import traceback
@@ -45,20 +46,24 @@ class CovResult:
         return cov_results
 
 class Runner:
-    def __init__(self, function, total_branches):
+    def __init__(self, function, total_branches, timeout=20):
         self.function = function
         self.total_branches = total_branches
+        self.timeout = timeout
 
-    def run(self, input_value, timeout=5):
+    def run(self, input_value, timeout=None):
         def handler(signum, frame):
             raise Exception("end of time")
 
+        if not timeout:
+            timeout = self.timeout
+        
         CovResult.clear()
 
         signal.signal(signal.SIGALRM, handler)
         signal.alarm(timeout)
         try:
-            self.function(*input_value)
+            self.function(*deepcopy(input_value))
         except Exception as e:
             if type(e) is TypeError:
                 exc_type, exc_value, exc_traceback = sys.exc_info()

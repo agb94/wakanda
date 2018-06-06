@@ -71,4 +71,4 @@ def get_fitness(cfg, target_branch, cov_result):
         branch_distance = report.branch_distance[div_point[1]]
     else:
         branch_distance = 0
-    return approach_level, 1-(1.001)**(-branch_distance)
+    return approach_level + (1-(1.001)**(-branch_distance))

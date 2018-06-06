@@ -1,7 +1,7 @@
 import itertools
 
 # returns 'neighbour' of given input value with ragne 'n' (+/- n)
-# ex) get_Neighbours([3, 'e'], 1) = [[2, 'd'], [2, 'e'], [2, 'f'], [3, 'd'], [3, 'e'], [3, 'f'], [4, 'd'], [4, 'e'], [4, 'f']]
+# ex) get_neighbours([3, 'e'], 1) = [[2, 'd'], [2, 'e'], [2, 'f'], [3, 'd'], [3, 'e'], [3, 'f'], [4, 'd'], [4, 'e'], [4, 'f']]
 def get_neighbours(vals, n):
     assert type(n) is int
     assert n > 0
@@ -51,7 +51,7 @@ def get_neighbours(vals, n):
             l = []
             for e in neighbour:
                 if (len(e) != 1):
-                    raise Exception("Something wrong in get_Neighbours")
+                    raise Exception("Something wrong in get_neighbours")
                 l.append(e[0])
             lst.append(l)
         pd = itertools.product(*lst)
