@@ -66,7 +66,7 @@ class Runner:
                     if self.function.__name__ in elem:
                         lineno = int(elem.split(',')[1].strip().split()[-1])
                         break
-                types = list(filter(lambda s: "'{}'".format(s.__name__) in str(exc_value), POSSIBLE_TYPES))
+                types = list(filter(lambda s: "{}".format(s.__name__) in str(exc_value), POSSIBLE_TYPES))
                 return (False, (TypeError, (lineno, types)))
             elif type(e) is IndexError:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
