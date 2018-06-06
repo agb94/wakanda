@@ -3,7 +3,7 @@ from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
 from covgen.type import _type
-from covgen.neighbour import get_Neighbours
+from covgen.neighbour import get_neighbours
 from copy import deepcopy
 import argparse
 import importlib
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             count = 0
             while not covered and count < VALUE_SEARCH_LIMIT:
                 better_neighbour_found = False
-                neighbours = get_Neighbours(deepcopy(min_fitness_vals), 1)
+                neighbours = get_neighbours(deepcopy(min_fitness_vals), 1)
                 for v in neighbours:
                     success, result = runner.run(v)
                     if not success:
