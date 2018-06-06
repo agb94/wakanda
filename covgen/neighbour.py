@@ -2,7 +2,7 @@ import itertools
 
 # returns 'neighbour' of given input value with ragne 'n' (+/- n)
 # ex) get_Neighbours([3, 'e'], 1) = [[2, 'd'], [2, 'e'], [2, 'f'], [3, 'd'], [3, 'e'], [3, 'f'], [4, 'd'], [4, 'e'], [4, 'f']]
-def get_Neighbours(vals, n):
+def get_neighbours(vals, n):
     assert type(n) is int
     assert n > 0
 
@@ -32,7 +32,7 @@ def get_Neighbours(vals, n):
             return [[True], [False]]
 
         elif type(v) is str or type(v) is list or type(v) is tuple:
-            nei = get_Neighbours(v, n)
+            nei = get_neighbours(v, n)
             lst = []
             for e in nei:
                 if type(v) is str:
@@ -47,7 +47,7 @@ def get_Neighbours(vals, n):
     else:
         lst = []
         for v in vals:
-            neighbour = get_Neighbours([v], n)
+            neighbour = get_neighbours([v], n)
             l = []
             for e in neighbour:
                 if (len(e) != 1):
