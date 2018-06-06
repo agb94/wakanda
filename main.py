@@ -53,7 +53,7 @@ if __name__ == "__main__":
     target_function = target_module.__dict__[args.function]
     
     # Initialize Function Runner
-    runner = Runner(target_function, total_branches)
+    runner = Runner(target_function, total_branches, timeout=20)
 
     # Search Input Type
     print("Start type search.......")
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     while target_branch:
         covered = False
         for types in type_candidates:
-            print("TYPE: {}".format(str([str(t) for t in types])))
+            # print("TYPE: {}".format(str([str(t) for t in types])))
             # Initialize
             min_fitness = sys.maxsize
             min_fitness_vals = None
@@ -94,18 +94,19 @@ if __name__ == "__main__":
             if not min_fitness_vals:
                 continue
             
-            print("Initial vals: {}".format(str(vals)))
+            # print("Initial vals: {}".format(str(vals)))
             # Start searching
             count = 0
             while not covered and count < VALUE_SEARCH_LIMIT:
-                neighbours = get_Neighbours(deepcopy(min_fitness_vals), 1) 
+                better_neighbour_found = False
+                neighbours = get_Neighbours(deepcopy(min_fitness_vals), 1)
                 for v in neighbours:
-                    print("vals: {}".format(str(v)))
                     success, result = runner.run(v)
                     if not success:
                         continue
                     fit = get_fitness(cfg, target_branch, result)
                     if fit < min_fitness:
+                        better_neighbour_found = True
                         min_fitness = fit
                         min_fitness_vals = v
 
@@ -115,9 +116,13 @@ if __name__ == "__main__":
                             len(total_branches)))
                         covered = True
                         break
-                    
+                
+                if not better_neighbour_found:
+                    # Stuck in local optima
+                    break
+
                 count += 1
-            
+
             # Check whether the search succeeded
             # If covered, stop searching a value for the branch
             if covered:
