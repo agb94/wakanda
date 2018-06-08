@@ -9,7 +9,7 @@ def get_neighbours(vals, n):
 
     if len(vals) == 1:
         v = vals[0]
-		
+
         if type(v) is int:
             res = []
             for i in range(-n, n+1):
@@ -41,9 +41,16 @@ def get_neighbours(vals, n):
                 else:
                     lst.append([e])
 
+            for len_diff in range(1, n+1):
+                # add element of (len(v) + len_diff) long
+                lst.append([v + random_seq(v, len_diff)])
+
+                # add element of (len(v) - len_diff) long
+                if len(v) - len_diff >= 0:
+                    new = v[0:(-len_diff)]
+                    lst.append([new])
+
             return lst
-
-
 
     else:
         lst = []
@@ -74,3 +81,68 @@ def randomTorF(n):
     else:
         return False
 
+
+# return random sequence of length n and type 'type(v)'
+def random_seq(v, n):
+    if type(v) is str:
+        seq = ''
+        for i in range(n):
+            seq += chr(random.randrange(32, 127))
+        return seq
+
+    elif type(v) is list:
+        seq = []
+        for i in range(n):
+            if len(v) > 0:
+                sample = v[0]
+                if type(sample) is int:
+                    seq.append(0)
+                    #seq.append(random_int())
+                elif type(sample) is float:
+                    seq.append(0.0)
+                    #seq.append(random_float())
+                elif type(sample) is str:
+                    seq.append('')
+                    #seq.append(random_str())
+                elif type(sample) is list:
+                    seq.append([])
+                    #seq.append(random_list())
+                elif type(sample) is tuple:
+                    seq.append(())
+                    #seq.append(random_tuple())
+                elif type(sample) is bool:
+                    seq.append(True)
+                    #seq.append(random_bool())
+            else:
+                seq.append(0) # for now, arbitrary append 0(intger type value). Could be changed
+
+        return seq
+
+    elif type(v) is tuple:
+        seq = ()
+        for i in range(n):
+            if len(v) > 0:
+                sample = v[0]
+                if type(sample) is int:
+                    seq += (0, )
+                    #seq += (random_int(), )
+                elif type(sample) is float:
+                    seq += (0.0, )
+                    #seq += (random_float(), )
+                elif type(sample) is str:
+                    seq += ('', )
+                    #seq += (random_str(), )
+                elif type(sample) is list:
+                    seq += ([], )
+                    #seq += (random_list(), )
+                elif type(sample) is tuple:
+                    seq += ((), )
+                    #seq += (random_tuple(), )
+                elif type(sample) is bool:
+                    seq += (True, )
+                    #seq += (random_bool(), )
+            else:
+                seq += (0, ) # for now, arbitrary append 0(intger type value). Could be changed
+
+
+        return seq
