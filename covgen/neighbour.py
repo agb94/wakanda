@@ -1,4 +1,5 @@
 import itertools
+import random
 
 # returns 'neighbour' of given input value with ragne 'n' (+/- n)
 # ex) get_neighbours([3, 'e'], 1) = [[2, 'd'], [2, 'e'], [2, 'f'], [3, 'd'], [3, 'e'], [3, 'f'], [4, 'd'], [4, 'e'], [4, 'f']]
@@ -47,15 +48,29 @@ def get_neighbours(vals, n):
     else:
         lst = []
         for v in vals:
-            neighbour = get_neighbours([v], n)
-            l = []
-            for e in neighbour:
-                if (len(e) != 1):
-                    raise Exception("Something wrong in get_neighbours")
-                l.append(e[0])
-            lst.append(l)
+            if randomTorF(len(vals)):
+                neighbour = get_neighbours([v], n)
+                l = []
+                for e in neighbour:
+                    if (len(e) != 1):
+                        raise Exception("Something wrong in get_neighbours")
+                    l.append(e[0])
+                lst.append(l)
+            else:
+                lst.append([v])
+
         pd = itertools.product(*lst)
         res = []
         for e in pd:
             res.append(list(e))
         return res
+
+
+# returns True with probability of 1/n
+def randomTorF(n):
+    r = random.randrange(n)
+    if r == 1:
+        return True
+    else:
+        return False
+
