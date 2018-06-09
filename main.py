@@ -11,11 +11,6 @@ import os
 import random
 import sys
 
-TYPE_SEARCH_LIMIT = 100
-NUM_TYPE_CANDIDATES = 20
-NUM_INPUT_CANDIDATES = 20
-VALUE_SEARCH_LIMIT = 100
-
 def next_target(branches, cannot_cover):
     not_covered = list(
         filter(lambda b: not b[1] and not b[0] in cannot_cover,
@@ -28,18 +23,10 @@ def next_target(branches, cannot_cover):
 def initilizer(input_types, constants):
     values = [t.get() for t in input_types]
     for i, value in enumerate(values):
-        constant_list = constants[type(value)]
-        constant_list.append(value)
-        values[i] = random.choice(constant_list)
+        values[i] = random.choice(constants[type(value)] + [value])
     return values
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
-    parser.add_argument(
-        'sourcefile', type=str, help='a file path to instrument')
-    parser.add_argument('function', type=str, help='target function name')
-    args = parser.parse_args()
-
+def main(args):
     print("INPUT GENERATOR for " + args.sourcefile)
     # Instrument & Get CFG
     profiler = Profiler()
@@ -59,12 +46,12 @@ if __name__ == "__main__":
     print("Start type search.......")
     num_args = len(function_node.args.args)
     type_candidates = list()
-    for i in range(TYPE_SEARCH_LIMIT):
+    for i in range(args.type_search_limit):
         types = _type.search(runner, num_args, profiler.line_and_vars)
         if types not in type_candidates:
             type_candidates.append(types)
     type_candidates.sort()
-    type_candidates = type_candidates[:NUM_TYPE_CANDIDATES]
+    type_candidates = type_candidates[:args.num_type_candidates]
     print("{} type candidates found.".format(len(type_candidates)))
     print()
 
@@ -76,13 +63,12 @@ if __name__ == "__main__":
     while target_branch:
         covered = False
         for types in type_candidates:
-            # print("TYPE: {}".format(str([str(t) for t in types])))
             # Initialize
             min_fitness = sys.maxsize
             min_fitness_vals = None
 
             # Select best initial input among the input candidates
-            for i in range(NUM_INPUT_CANDIDATES):
+            for i in range(args.num_input_candidates):
                 vals = initilizer(types, profiler.constants)
                 success, result = runner.run(vals)
                 if not success:
@@ -91,25 +77,27 @@ if __name__ == "__main__":
                 if fit < min_fitness:
                     min_fitness, min_fitness_vals = fit, vals
 
+            print("{}\t{}\t{}".format(target_branch, [str(t) for t in types], str(min_fitness_vals)))
+            
             if not min_fitness_vals:
                 continue
             
-            # print("Initial vals: {}".format(str(vals)))
             # Start searching
             count = 0
-            while not covered and count < VALUE_SEARCH_LIMIT:
+            
+            while not covered and count < args.value_search_limit:
                 better_neighbour_found = False
                 neighbours = get_neighbours(deepcopy(min_fitness_vals), 1)
+                vals, fits = [], []
                 for v in neighbours:
+                    if v == min_fitness_vals:
+                        continue
                     success, result = runner.run(v)
                     if not success:
                         continue
                     fit = get_fitness(cfg, target_branch, result)
-                    if fit < min_fitness:
-                        better_neighbour_found = True
-                        min_fitness = fit
-                        min_fitness_vals = v
-
+                    vals.append(v)
+                    fits.append(fit)
                     if total_branches[target_branch]:
                         print("{}/{} branches have been covered.".format(
                             len(list(filter(lambda v: v, total_branches.values()))),
@@ -117,11 +105,16 @@ if __name__ == "__main__":
                         covered = True
                         break
                 
-                if not better_neighbour_found:
-                    # Stuck in local optima
-                    break
-
                 count += 1
+
+                # Random Ascent
+                if fits and vals:
+                    best_neighbour_index = random.choice(list(map(lambda t: t[0], filter(lambda t: t[1] == min(fits), enumerate(fits)))))
+                    min_fitness = fits[best_neighbour_index]
+                    min_fitness_vals = vals[best_neighbour_index]
+                    # print(min_fitness, min_fitness_vals)
+                else:
+                    continue
 
             # Check whether the search succeeded
             # If covered, stop searching a value for the branch
@@ -149,14 +142,28 @@ if __name__ == "__main__":
             test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_T]))
         else:
             test_input_str = '-'
-        print("{}: {}".format(str(n)+'T', test_input_str))
+        print("{}: `{}`".format(str(n)+'T', test_input_str))
 
         branch_F = (n, False)
         if total_branches[branch_F]:
             test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_F]))
         else:
             test_input_str = '-'
-        print("{}: {}".format(str(n)+'F', test_input_str))
+        print("{}: `{}`".format(str(n)+'F', test_input_str))
 
     print("Done.")
     print("============================================")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
+    parser.add_argument('sourcefile', type=str, help='a file path to instrument')
+    parser.add_argument('function', type=str, help='target function name')
+    parser.add_argument('--type_search_limit', type=int, default=100)
+    parser.add_argument('--value_search_limit', type=int, default=1000)
+    parser.add_argument('--num_type_candidates', type=int, default=20)
+    parser.add_argument('--num_input_candidates', type=int, default=20)
+    args = parser.parse_args()
+
+    assert args.num_type_candidates <= args.type_search_limit
+
+    main(args)

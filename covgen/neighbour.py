@@ -1,3 +1,4 @@
+from copy import deepcopy
 import itertools
 import random
 
@@ -33,14 +34,13 @@ def get_neighbours(vals, n):
             return [[True], [False]]
 
         elif type(v) is str or type(v) is list or type(v) is tuple:
-            nei = get_neighbours(v, n)
+            nei = get_neighbours(deepcopy(v), n)
             lst = []
-            for e in nei:
-                if type(v) is str:
-                    lst.append([''.join(e)])
-                else:
-                    lst.append([e])
 
+            for e in nei:
+                lst.append([e])
+
+            """
             for len_diff in range(1, n+1):
                 # add element of (len(v) + len_diff) long
                 lst.append([v + random_seq(v, len_diff)])
@@ -49,12 +49,14 @@ def get_neighbours(vals, n):
                 if len(v) - len_diff >= 0:
                     new = v[0:(-len_diff)]
                     lst.append([new])
+            """
 
             return lst
 
     else:
         lst = []
         for v in vals:
+            v = deepcopy(v)
             if randomTorF(len(vals)):
                 neighbour = get_neighbours([v], n)
                 l = []
@@ -69,7 +71,12 @@ def get_neighbours(vals, n):
         pd = itertools.product(*lst)
         res = []
         for e in pd:
-            res.append(list(e))
+            if type(vals) == list:
+                res.append(list(e))
+            elif type(vals) == tuple:
+                res.append(tuple(e))
+            elif type(vals) == str:
+                res.append(''.join(e))
         return res
 
 
@@ -143,6 +150,5 @@ def random_seq(v, n):
                     #seq += (random_bool(), )
             else:
                 seq += (0, ) # for now, arbitrary append 0(intger type value). Could be changed
-
-
+ 
         return seq

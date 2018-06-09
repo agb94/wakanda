@@ -37,7 +37,14 @@ class _type:
 
     def __lt__(self, other):
         if (TYPE_PRIORITY.index(self.this) == TYPE_PRIORITY.index(other.this)) and (self.elem and other.elem):
-            return self.elem < other.elem
+            num_lt = 0
+            num_not_lt = 0
+            for e1, e2 in zip(self.elem, other.elem):
+                if e1 < e2:
+                    num_lt += 1
+                else:
+                    num_not_lt += 1
+            return num_lt < num_not_lt
         else:
             return TYPE_PRIORITY.index(self.this) < TYPE_PRIORITY.index(other.this)
     
