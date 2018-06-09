@@ -77,7 +77,7 @@ def main(args):
                 if fit < min_fitness:
                     min_fitness, min_fitness_vals = fit, vals
 
-            print("{}\t{}\t{}".format(target_branch, [str(t) for t in types], str(min_fitness_vals)))
+            # print("{}\t{}\t{}".format(target_branch, [str(t) for t in types], str(min_fitness_vals)))
             
             if not min_fitness_vals:
                 continue
@@ -139,17 +139,17 @@ def main(args):
     for n in range(1, num_branch+1):
         branch_T = (n, True)
         if total_branches[branch_T]:
-            test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_T]))
+            #test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_T]))
+            print("{}: {}".format(str(n)+'T', total_branches[branch_T]))
         else:
-            test_input_str = '-'
-        print("{}: `{}`".format(str(n)+'T', test_input_str))
+            print("{}: -".format(str(n)+'T'))
 
         branch_F = (n, False)
         if total_branches[branch_F]:
-            test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_F]))
+            #test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_F]))
+            print("{}: {}".format(str(n)+'F', total_branches[branch_F]))
         else:
-            test_input_str = '-'
-        print("{}: `{}`".format(str(n)+'F', test_input_str))
+            print("{}: -".format(str(n)+'F'))
 
     print("Done.")
     print("============================================")
