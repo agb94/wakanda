@@ -57,7 +57,10 @@ def main(args):
 
     # Search Input Value with determined input type
     print("Start value search......")
-
+    
+    print("{}/{} branches have been covered while searching types.".format(
+        len(list(filter(lambda v: v, total_branches.values()))),
+        len(total_branches)))
     cannot_cover = set()
     target_branch = next_target(total_branches, cannot_cover)
     while target_branch:
@@ -77,7 +80,8 @@ def main(args):
                 if fit < min_fitness:
                     min_fitness, min_fitness_vals = fit, vals
 
-            # print("{}\t{}\t{}".format(target_branch, [str(t) for t in types], str(min_fitness_vals)))
+            if args.verbose:
+                print("{}\t{}\t{}".format(target_branch, [str(t) for t in types], str(min_fitness_vals)))
             
             if not min_fitness_vals:
                 continue
@@ -112,7 +116,8 @@ def main(args):
                     best_neighbour_index = random.choice(list(map(lambda t: t[0], filter(lambda t: t[1] == min(fits), enumerate(fits)))))
                     min_fitness = fits[best_neighbour_index]
                     min_fitness_vals = vals[best_neighbour_index]
-                    # print(min_fitness, min_fitness_vals)
+                    if args.verbose:
+                        print("best:", min_fitness, min_fitness_vals)
                 else:
                     continue
 
@@ -158,6 +163,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
     parser.add_argument('sourcefile', type=str, help='a file path to instrument')
     parser.add_argument('function', type=str, help='target function name')
+    parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument('--type_search_limit', type=int, default=100)
     parser.add_argument('--value_search_limit', type=int, default=1000)
     parser.add_argument('--num_type_candidates', type=int, default=20)

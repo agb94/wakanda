@@ -60,7 +60,7 @@ def iter(bid, depth, expr):
 
 ## Suppose a, b are given with 'valid' type -> one of int, float, str, list, tuple
 def dist(a, b = None):
-    if not b:
+    if b is None:
         b = _type(type(a)).get()
 
     # numerical values
