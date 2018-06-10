@@ -62,11 +62,11 @@ class _type:
         #     return self.val
         assert self.this in POSSIBLE_TYPES
         if self.this == int:
-            return 0
+            return random.choice([-100, -10, 0, 10, 100])
         elif self.this == float:
-            return 0.123
+            return random.choice([0.01, 0.00, -0.001, 0.123])
         elif self.this == bool:
-            return False
+            return random.choice([False, True])
         elif self.this == str:
             return " " * self.elem_cnt
         elif self.this == list:
