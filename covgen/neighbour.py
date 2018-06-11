@@ -31,7 +31,15 @@ def get_neighbours(vals, n):
                     res.append([chr(ord(v) + i)])
                 except:
                     continue
+
+            if randomTorF(1):
+                for len_diff in range(1, n+1):
+                    # add element of (len(v) + len_diff) long
+                    res.append([v + random_seq(v, len_diff)])
+
+                    res.append([''])
             return res
+
 
         elif type(v) is bool:
             return [[True], [False]]
@@ -43,17 +51,16 @@ def get_neighbours(vals, n):
             for e in nei:
                 lst.append([e])
 
-            """
-            for len_diff in range(1, n+1):
-                # add element of (len(v) + len_diff) long
-                lst.append([v + random_seq(v, len_diff)])
+            if randomTorF(1):
+                for len_diff in range(1, n+1):
+                    # add element of (len(v) + len_diff) long
+                    lst.append([v + random_seq(v, len_diff)])
 
-                # add element of (len(v) - len_diff) long
-                if len(v) - len_diff >= 0:
-                    new = v[0:(-len_diff)]
-                    lst.append([new])
-            """
-
+                    # add element of (len(v) - len_diff) long
+                    if len(v) - len_diff >= 0:
+                        new = v[0:(-len_diff)]
+                        lst.append([new])
+            
             return lst
 
     else:
@@ -86,7 +93,7 @@ def get_neighbours(vals, n):
 # returns True with probability of 1/n
 def randomTorF(n):
     r = random.randrange(n)
-    if r == 1:
+    if r == 0:
         return True
     else:
         return False
