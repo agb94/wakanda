@@ -80,7 +80,7 @@ def dist(a, b = None):
         if len(a) == len(b):
             return 0;
         else:
-            return (len(a) - len(b)) * 100
+            return (len(a) - len(b)) * 1000
 
     else:
         raise MyError(type(a), type(b))
