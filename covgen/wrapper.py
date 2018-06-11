@@ -73,20 +73,30 @@ def dist(a, b = None):
 
     # seqeunce type values
     elif (type(a) is str and type(b) is str) or (type(a) is list and type(b) is list) or (type(a) is tuple and type(b) is tuple):
-        for i in range(min(len(a), len(b))):
+        common = min(len(a), len(b))
+        for i in range(common):
             if a[i] != b[i]:
-                return dist(a[i], b[i])
+                return dist(a[i], b[i]) * 128 ** (-i)
 
         if len(a) == len(b):
             return 0;
+        elif len(a) > len(b):
+            return (ord(a[common]) + 1) * 128**(-common)
         else:
-            return (len(a) - len(b)) * 1000
+            return (-(ord(b[common]) + 1)) * 128**(-common)
+        # else:
+        #     if type(a) is str and type(b) is str:
+
+        #     return (len(a) - len(b)) * 1000
 
     else:
         raise MyError(type(a), type(b))
     # # boolean type values
     # elif (type(a) is bool and type(b) is bool):
     #     return a - b
+
+def norm(a):
+    return 1 - 1.001**(-a)
 
 
 
