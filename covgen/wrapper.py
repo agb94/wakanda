@@ -1,4 +1,4 @@
-from .type import _type
+from .type import _type, MyError
 import sys
 
 K = 1
@@ -78,9 +78,14 @@ def dist(a, b = None):
                 return dist(a[i], b[i])
 
         if len(a) == len(b):
-            return 0;
+            return 0
         else:
-            return (len(a) - len(b)) * 100
+            if type(a) is str and type(b) is str:
+                if len(a) > len(b):
+                    return ord(a[len(b)]) * 10 ** abs(len(a) - len(b))
+                else:
+                    return ord(b[len(a)]) * 10 ** abs(len(a) - len(b))
+            return (len(a) - len(b)) * 1000
 
     else:
         raise MyError(type(a), type(b))

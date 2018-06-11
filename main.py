@@ -2,7 +2,7 @@ from covgen.runner import Runner
 from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
 from covgen.fitness_calculator import get_fitness
-from covgen.type import _type
+from covgen.type import _type, MyError
 from covgen.neighbour import get_neighbours
 from copy import deepcopy
 import argparse
@@ -20,7 +20,7 @@ def next_target(branches, cannot_cover):
     else:
         return None
 
-def initilizer(input_types, constants):
+def initializer(input_types, constants):
     values = [t.get() for t in input_types]
     for i, value in enumerate(values):
         values[i] = random.choice(constants[type(value)] + [value])
@@ -63,16 +63,29 @@ def main(args):
         len(total_branches)))
     cannot_cover = set()
     target_branch = next_target(total_branches, cannot_cover)
+    invalid_types = []
     while target_branch:
         covered = False
         for types in type_candidates:
+            
+            if types in invalid_types:
+                continue
+
             # Initialize
             min_fitness = sys.maxsize
             min_fitness_vals = None
 
             # Select best initial input among the input candidates
             for i in range(args.num_input_candidates):
-                vals = initilizer(types, profiler.constants)
+                vals = initializer(types, profiler.constants)
+                
+                # for the first attempt
+                if i == 0:
+                    dependencies = cfg[target_branch[0]]
+                    for branch in reversed(dependencies):
+                        if total_branches[branch] and _type.check(types, total_branches[branch]):
+                            vals = total_branches[branch]
+                
                 success, result = runner.run(vals)
                 if not success:
                     continue
@@ -89,7 +102,7 @@ def main(args):
             # Start searching
             count = 0
             
-            while not covered and count < args.value_search_limit:
+            while not covered and not types in invalid_types and count < args.value_search_limit:
                 better_neighbour_found = False
                 neighbours = get_neighbours(deepcopy(min_fitness_vals), 1)
                 vals, fits = [], []
@@ -98,6 +111,11 @@ def main(args):
                         continue
                     success, result = runner.run(v)
                     if not success:
+                        print(result)
+                        error_type, error_info = result
+                        if error_type == TypeError or error_type == MyError:
+                            invalid_types.append(types)
+                            break
                         continue
                     fit = get_fitness(cfg, target_branch, result)
                     vals.append(v)
@@ -112,7 +130,7 @@ def main(args):
                 count += 1
 
                 # Random Ascent
-                if fits and vals:
+                if fits and vals and min(fits) <= min_fitness:
                     best_neighbour_index = random.choice(list(map(lambda t: t[0], filter(lambda t: t[1] == min(fits), enumerate(fits)))))
                     min_fitness = fits[best_neighbour_index]
                     min_fitness_vals = vals[best_neighbour_index]
@@ -167,7 +185,7 @@ if __name__ == "__main__":
     parser.add_argument('--type_search_limit', type=int, default=100)
     parser.add_argument('--value_search_limit', type=int, default=1000)
     parser.add_argument('--num_type_candidates', type=int, default=20)
-    parser.add_argument('--num_input_candidates', type=int, default=20)
+    parser.add_argument('--num_input_candidates', type=int, default=50)
     args = parser.parse_args()
 
     assert args.num_type_candidates <= args.type_search_limit

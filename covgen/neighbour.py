@@ -27,7 +27,10 @@ def get_neighbours(vals, n):
         elif type(v) is str and len(v) == 1:
             res = []
             for i in range(-n, n+1):
-                res.append([chr(ord(v) + i)])
+                try:
+                    res.append([chr(ord(v) + i)])
+                except:
+                    continue
             return res
 
         elif type(v) is bool:

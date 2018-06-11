@@ -4,7 +4,7 @@ import random
 
 # POSSIBLE_TYPES = [bool, int, float, str, list, tuple, type(None)]
 POSSIBLE_TYPES = [bool, int, float, str, list, tuple]
-TYPE_PRIORITY = [int, bool, tuple, list, float, str]
+TYPE_PRIORITY = {bool: 1, int: 2, str: 3, tuple: 4, list: 4, float: 5}
 
 class MyError(Exception):
     def __init__(self, type_a, type_b):
@@ -36,7 +36,7 @@ class _type:
         return not self.__eq__(self, other)
 
     def __lt__(self, other):
-        if (TYPE_PRIORITY.index(self.this) == TYPE_PRIORITY.index(other.this)) and (self.elem and other.elem):
+        if (TYPE_PRIORITY[self.this] == TYPE_PRIORITY[other.this]) and (self.elem and other.elem):
             num_lt = 0
             num_not_lt = 0
             for e1, e2 in zip(self.elem, other.elem):
@@ -46,7 +46,7 @@ class _type:
                     num_not_lt += 1
             return num_lt < num_not_lt
         else:
-            return TYPE_PRIORITY.index(self.this) < TYPE_PRIORITY.index(other.this)
+            return TYPE_PRIORITY[self.this] < TYPE_PRIORITY[other.this]
     
     def __le__(self, other):
         return self.__lt__(self, other) or self.__eq__(self, other)
@@ -113,66 +113,84 @@ class _type:
         return self
 
     @classmethod
+    def get_neighbour(cls, runner, num_args, line_and_vars, types, error_result):
+        error_type, error_info = error_result
+        
+        curr_types = deepcopy(types)
+
+        # Case1: TypeError or MyError
+        if error_type == TypeError or error_type == MyError:
+            lineno, types = error_info
+            suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
+
+            if suspicous_inputs and random.random() < 0.8:
+                i = random.choice(suspicous_inputs)
+            else:
+                i = random.randrange(num_args)
+
+            if len(types) == 1:
+                # It might be a subscription error. So, we change the type into sequence types.
+                curr_types[i] = curr_types[i].recursively_change_type(types[0], [str, list, tuple])
+            elif curr_types[i].this in types:
+                curr_types[i] = cls.get_random(types)
+        # Case2: IndexError
+        elif error_type == IndexError:
+            lineno, indexes = error_info
+            suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
+
+            if suspicous_inputs and random.random() < 0.8:
+                i = random.choice(suspicous_inputs)
+            else:
+                i = random.randrange(num_args)
+
+            if curr_types[i].this == str:
+                if len(indexes) > 1:
+                    curr_types[i] = cls.get_random([list, tuple])
+                else:
+                    curr_types[i].expand()
+            elif curr_types[i].this in [list, tuple]:
+                t = curr_types[i]
+                for index in indexes:
+                    if t.elem and index < len(t.elem):
+                        t = t.elem[index]
+                    else:
+                        break
+                t.expand()
+        else:
+            curr_types = [cls.get_random() for i in range(num_args)]
+        
+        return curr_types
+
+    @classmethod
     def get_random(cls, candidates=POSSIBLE_TYPES):
         return cls(random.choice(candidates))
+
+    @classmethod
+    def search(cls, runner, num_args: int, line_and_vars: dict):
+        curr_types = [cls.get_random() for i in range(num_args)]
+        while True:
+            success, result = runner.run(deepcopy([t.get() for t in curr_types]))
+            if success:
+                break
+            curr_types = cls.get_neighbour(runner, num_args, line_and_vars, curr_types, result)
+        return curr_types
 
     @staticmethod
     def str_to_type_class(s):
         if s == 'NoneType':
             return type(None)
         else:
-            return globals()[s]
+            return eval(s)
 
     @staticmethod
-    def search(runner, num_args: int, line_and_vars: dict):
-        curr_types = [_type.get_random() for i in range(num_args)]
-        while True:
-            success, result = runner.run(deepcopy([t.get() for t in curr_types]))
-            
-            if success:
-                break
-            
-            error_type, error_info = result
-            
-            # Case1: TypeError or MyError
-            if error_type == TypeError or error_type == MyError:
-                lineno, types = error_info
-                suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
-
-                if suspicous_inputs and random.random() < 0.8:
-                    i = random.choice(suspicous_inputs)
-                else:
-                    i = random.randrange(num_args)
-
-                if len(types) == 1:
-                    # It might be a subscription error. So, we change the type into sequence types.
-                    curr_types[i] = curr_types[i].recursively_change_type(types[0], [str, list, tuple])
-                elif curr_types[i].this in types:
-                    curr_types[i] = _type.get_random(types)
-            # Case2: IndexError
-            elif error_type == IndexError:
-                lineno, indexes = error_info
-                suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
-
-                if suspicous_inputs and random.random() < 0.8:
-                    i = random.choice(suspicous_inputs)
-                else:
-                    i = random.randrange(num_args)
-
-                if curr_types[i].this == str:
-                    if len(indexes) > 1:
-                        curr_types[i] = _type.get_random([list, tuple])
-                    else:
-                        curr_types[i].expand()
-                elif curr_types[i].this in [list, tuple]:
-                    t = curr_types[i]
-                    for index in indexes:
-                        if t.elem and index < len(t.elem):
-                            t = t.elem[index]
-                        else:
-                            break
-                    t.expand()
-            # Case3: Other Error Types
-            else:
-                curr_types = [_type.get_random() for i in range(num_args)]
-        return curr_types
+    def check(types, values):
+        if type(types) != type(values):
+            return False
+        if len(types) == len(values):
+            return False
+        for i in range(types):
+            if types[i].this != type(values[i]):
+                return False
+            if types[i].elem and not type_check(types[i].elem, values[i]):
+                return False
+        return True
