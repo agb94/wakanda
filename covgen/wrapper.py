@@ -80,13 +80,13 @@ def dist(a, b = None):
         if len(a) == len(b):
             return 0
         else:
+            sign = 1 if len(a) < len(b) else -1
             if type(a) is str and type(b) is str:
                 if len(a) > len(b):
-                    return ord(a[len(b)]) * 10 ** abs(len(a) - len(b))
+                    return sign * ord(a[len(b)]) * 10 ** abs(len(a) - len(b))
                 else:
-                    return ord(b[len(a)]) * 10 ** abs(len(a) - len(b))
-            return (len(a) - len(b)) * 1000
-
+                    return sign * ord(b[len(a)]) * 10 ** abs(len(a) - len(b))
+            return sign * 10 ** (abs(len(a) - len(b)) + 1)
     else:
         raise MyError(type(a), type(b))
     # # boolean type values
