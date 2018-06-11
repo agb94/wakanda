@@ -105,6 +105,8 @@ def main(args):
             while not covered and not types in invalid_types and count < args.value_search_limit:
                 better_neighbour_found = False
                 neighbours = get_neighbours(deepcopy(min_fitness_vals), 1)
+                random.shuffle(neighbours)
+                neighbours = neighbours[:1000]
                 vals, fits = [], []
                 for v in neighbours:
                     if v == min_fitness_vals:
