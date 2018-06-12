@@ -106,14 +106,13 @@ def main(args):
                 better_neighbour_found = False
                 neighbours = get_neighbours(deepcopy(min_fitness_vals), 1)
                 random.shuffle(neighbours)
-                neighbours = neighbours[:1000]
+                neighbours = neighbours[:args.neighbours_limit]
                 vals, fits = [], []
                 for v in neighbours:
                     if v == min_fitness_vals:
                         continue
                     success, result = runner.run(v)
                     if not success:
-                        print(result)
                         error_type, error_info = result
                         if error_type == TypeError or error_type == MyError:
                             invalid_types.append(types)
@@ -184,9 +183,10 @@ if __name__ == "__main__":
     parser.add_argument('sourcefile', type=str, help='a file path to instrument')
     parser.add_argument('function', type=str, help='target function name')
     parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument('--type_search_limit', type=int, default=100)
-    parser.add_argument('--value_search_limit', type=int, default=1000)
-    parser.add_argument('--num_type_candidates', type=int, default=20)
+    parser.add_argument('--type_search_limit', type=int, default=200)
+    parser.add_argument('--value_search_limit', type=int, default=100)
+    parser.add_argument('--neighbours_limit', type=int, default=1000)
+    parser.add_argument('--num_type_candidates', type=int, default=30)
     parser.add_argument('--num_input_candidates', type=int, default=50)
     args = parser.parse_args()
 

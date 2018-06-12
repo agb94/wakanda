@@ -37,14 +37,12 @@ class _type:
 
     def __lt__(self, other):
         if (TYPE_PRIORITY[self.this] == TYPE_PRIORITY[other.this]) and (self.elem and other.elem):
-            num_lt = 0
-            num_not_lt = 0
+            e1_score = 0
+            e2_score = 0
             for e1, e2 in zip(self.elem, other.elem):
-                if e1 < e2:
-                    num_lt += 1
-                else:
-                    num_not_lt += 1
-            return num_lt < num_not_lt
+                e1_score += TYPE_PRIORITY[e1.this]
+                e2_score += TYPE_PRIORITY[e2.this]
+            return e1_score < e2_score
         else:
             return TYPE_PRIORITY[self.this] < TYPE_PRIORITY[other.this]
     
@@ -116,23 +114,22 @@ class _type:
     def get_neighbour(cls, runner, num_args, line_and_vars, types, error_result):
         error_type, error_info = error_result
         
-        curr_types = deepcopy(types)
+        curr_types = types
 
         # Case1: TypeError or MyError
         if error_type == TypeError or error_type == MyError:
             lineno, types = error_info
             suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
-
             if suspicous_inputs and random.random() < 0.8:
                 i = random.choice(suspicous_inputs)
             else:
                 i = random.randrange(num_args)
-
             if len(types) == 1:
                 # It might be a subscription error. So, we change the type into sequence types.
                 curr_types[i] = curr_types[i].recursively_change_type(types[0], [str, list, tuple])
-            elif curr_types[i].this in types:
-                curr_types[i] = cls.get_random(types)
+            else:
+                curr_types[i] = curr_types[i].recursively_change_type(random.choice(types), types)
+                #curr_types[i] = cls.get_random(types)
         # Case2: IndexError
         elif error_type == IndexError:
             lineno, indexes = error_info

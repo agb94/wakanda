@@ -40,7 +40,7 @@ def get_fitness(cfg, target_branch, cov_result):
                                 # Evaluated to True
                                 row.branch_distance[True] = 0
                                 # every subexpression must be False
-                                row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), distances)))/len(distances)
+                                row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), neg)))/len(neg)
                             else:
                                 # Evaluated to False
                                 row.branch_distance[False] = 0
