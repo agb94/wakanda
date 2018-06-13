@@ -19,9 +19,10 @@ def get_neighbours(vals, n):
 
         # needs to be changed
         elif type(v) is float:
+            global args
             res = []
             for i in range(-n, n+1):
-                res.append([v + i*0.00000000000001])
+                res.append([v + i*args.float_amlitude])
             return res
 
         elif type(v) is str and len(v) == 1:
