@@ -104,7 +104,7 @@ def main(args):
             
             while not covered and not types in invalid_types and count < args.value_search_limit:
                 better_neighbour_found = False
-                neighbours = get_neighbours(deepcopy(min_fitness_vals), 1)
+                neighbours = get_neighbours(deepcopy(min_fitness_vals), 1, args.float_amplitude)
                 random.shuffle(neighbours)
                 neighbours = neighbours[:args.neighbours_limit]
                 vals, fits = [], []
@@ -188,6 +188,7 @@ if __name__ == "__main__":
     parser.add_argument('--neighbours_limit', type=int, default=1000)
     parser.add_argument('--num_type_candidates', type=int, default=30)
     parser.add_argument('--num_input_candidates', type=int, default=50)
+    parser.add_argument('--float_amplitude', type=float, default=0.0000000001)
     args = parser.parse_args()
 
     assert args.num_type_candidates <= args.type_search_limit

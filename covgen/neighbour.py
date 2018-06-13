@@ -4,7 +4,7 @@ import random
 
 # returns 'neighbour' of given input value with ragne 'n' (+/- n)
 # ex) get_neighbours([3, 'e'], 1) = [[2, 'd'], [2, 'e'], [2, 'f'], [3, 'd'], [3, 'e'], [3, 'f'], [4, 'd'], [4, 'e'], [4, 'f']]
-def get_neighbours(vals, n):
+def get_neighbours(vals, n, float_amplitude):
     assert type(n) is int
     assert n > 0
 
@@ -19,10 +19,9 @@ def get_neighbours(vals, n):
 
         # needs to be changed
         elif type(v) is float:
-            global args
             res = []
             for i in range(-n, n+1):
-                res.append([v + i*args.float_amlitude])
+                res.append([v + i*float_amplitude])
             return res
 
         elif type(v) is str and len(v) == 1:
@@ -46,7 +45,7 @@ def get_neighbours(vals, n):
             return [[True], [False]]
 
         elif type(v) is str or type(v) is list or type(v) is tuple:
-            nei = get_neighbours(deepcopy(v), n)
+            nei = get_neighbours(deepcopy(v), n, float_amplitude)
             lst = []
 
             for e in nei:
@@ -69,7 +68,7 @@ def get_neighbours(vals, n):
         for v in vals:
             v = deepcopy(v)
             if randomTorF(len(vals)):
-                neighbour = get_neighbours([v], n)
+                neighbour = get_neighbours([v], n, float_amplitude)
                 l = []
                 for e in neighbour:
                     if (len(e) != 1):
