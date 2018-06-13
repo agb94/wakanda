@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument('function', type=str, help='target function name')
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument('--type_search_limit', type=int, default=200)
-    parser.add_argument('--value_search_limit', type=int, default=100)
+    parser.add_argument('--value_search_limit', type=int, default=1000)
     parser.add_argument('--neighbours_limit', type=int, default=1000)
     parser.add_argument('--num_type_candidates', type=int, default=30)
     parser.add_argument('--num_input_candidates', type=int, default=50)
