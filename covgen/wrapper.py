@@ -1,3 +1,6 @@
+from .type import _type, MyError
+import sys
+
 K = 1
 
 def write_cov_report(bid:int, depth:int, result: bool, op: str, branch_distance_true: int, branch_distance_false: int):
@@ -47,7 +50,7 @@ def unaryop(bid, depth, op, operand):
 
 def value(bid, depth, v):
     result = bool(v)
-    write_cov_report(bid, depth, result, 'V', -abs(v), abs(v))
+    write_cov_report(bid, depth, result, 'V', -abs(dist(v)), abs(dist(v)))
     return result
 
 def iter(bid, depth, expr):
@@ -56,9 +59,53 @@ def iter(bid, depth, expr):
     return result
 
 ## Suppose a, b are given with 'valid' type -> one of int, float, str, list, tuple
-def dist(a, b):
+def dist(a, b = None):
+    if b is None:
+        b = _type(type(a)).get()
+
     # numerical values
-    if (type(a) is int or type(a) is float) and (type(b) is int or type(b) is float) :
+    if (type(a) is int or type(a) is float or type(a) is bool) and (type(b) is int or type(b) is float or type(b) is bool) :
+        return a - b
+
+    # single characters
+    elif type(a) is str and len(a) == 1 and type(b) is str and len(b) == 1:
+        return ord(a) - ord(b)
+
+    # seqeunce type values
+    elif (type(a) is str and type(b) is str) or (type(a) is list and type(b) is list) or (type(a) is tuple and type(b) is tuple):
+        not_common = max(len(a), len(b))
+        common = min(len(a), len(b))
+        for i in range(common):
+            if a[i] != b[i]:
+                if a[i] < b[i]:
+                    return dist(a[i], b[i]) - (128 * not_common)
+                else:
+                    return dist(a[i], b[i]) + (128 * not_common)
+            not_common -= 1
+
+        if len(a) == len(b):
+           return 0;
+        else:
+            if type(a) is str and type(b) is str:
+                if len(a) > len(b):
+                    return ord(a[common]) + 1 + 128 * not_common
+                else:
+                    return -(ord(b[common]) + 1 + 128 * not_common)
+            else:
+                return (len(a) - len(b)) * 1000
+    else:
+        raise MyError(type(a), type(b))
+
+def norm(a):
+    return 1 - 1.001**(-a)
+
+
+
+def dist2(a, b = None):
+    b = _type(type(a)).get()
+
+    # numerical values
+    if (type(a) is int or type(a) is float or type(a) is bool) and (type(b) is int or type(b) is float or type(b) is bool) :
         return a - b
 
     # single characters
@@ -69,13 +116,33 @@ def dist(a, b):
     elif (type(a) is str and type(b) is str) or (type(a) is list and type(b) is list) or (type(a) is tuple and type(b) is tuple):
         for i in range(min(len(a), len(b))):
             if a[i] != b[i]:
-                return dist(a[i], b[i])
+                return dist2(a[i], b[i])
 
         if len(a) == len(b):
             return 0;
         else:
             return (len(a) - len(b)) * 100
 
-    # boolean type values
-    elif (type(a) is bool and type(b) is bool):
-        return a - b
+    else:
+        raise MyError(type(a), type(b))
+
+
+def dist2(a, b = None):
+    
+    def value(x):
+        if type(x) is int or type(x) is float or type(x) is bool:
+            return x
+
+        elif type(x) is str and len(x) == 1:
+            return ord(x)
+
+        elif type(x) is str:
+            v = 0
+            for i in range(len(x)):
+                v += value(x[i]) * (128 ** i)
+
+            return v
+
+
+    return value(a) - value(b)
+

@@ -1,12 +1,12 @@
 def get_fitness(cfg, target_branch, cov_result):
     dependency_chain = cfg[target_branch[0]] + [target_branch]
-    cov_result_tuples = list(map(lambda b: b.to_tuple(), cov_result))
+    covered_branches = list(map(lambda b: b.to_branch(), cov_result))
     div_point = None
     approach_level = len(dependency_chain)
 
     for branch in dependency_chain:
         opposite = (branch[0], not branch[1])
-        if branch not in cov_result_tuples and opposite in cov_result_tuples:
+        if branch not in covered_branches and opposite in covered_branches:
             # Divergence Point
             div_point = branch
             break
@@ -40,7 +40,7 @@ def get_fitness(cfg, target_branch, cov_result):
                                 # Evaluated to True
                                 row.branch_distance[True] = 0
                                 # every subexpression must be False
-                                row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), distances)))/len(distances)
+                                row.branch_distance[False] = float(sum(map(lambda d: abs(d[False]), neg)))/len(neg)
                             else:
                                 # Evaluated to False
                                 row.branch_distance[False] = 0
@@ -71,4 +71,4 @@ def get_fitness(cfg, target_branch, cov_result):
         branch_distance = report.branch_distance[div_point[1]]
     else:
         branch_distance = 0
-    return approach_level, 1-(1.001)**(-branch_distance)
+    return approach_level + (1-(1.001)**(-branch_distance))

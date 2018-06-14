@@ -1,3 +1,4 @@
+from .type import POSSIBLE_TYPES
 import itertools
 import ast
 import astor
@@ -99,7 +100,7 @@ class Profiler(ast.NodeTransformer):
                 value=ast.Name(id='covw', ctx=ast.Load()),
                 attr='iter',
                 ctx=ast.Load()),
-            args=[ast.Num(n=self.branch_id), node.iter],
+            args=[ast.Num(n=self.branch_id), ast.Num(n=0), node.iter],
             keywords=[])
         self.branches[node] = self.branch_id
         self.branch_id += 1
@@ -116,13 +117,16 @@ class Profiler(ast.NodeTransformer):
 
             if not hasattr(node, '__dict__'):
                 return
+
             if isinstance(node, ast.Name):
                 self.line_and_vars[
                     self.current_lineno] = self.line_and_vars.get(
                         self.current_lineno, set())
                 self.line_and_vars[self.current_lineno].add(node.id)
                 return
+
             node_vars = vars(node)
+
             for k in node_vars:
                 if isinstance(node_vars[k], list):
                     for stmt in node_vars[k]:
@@ -133,17 +137,38 @@ class Profiler(ast.NodeTransformer):
         visit_all_attr(node)
         return self.line_and_vars
 
-    """
-    def collect_int_constants(self, node):
-        self.int_constants = set()
+    def collect_constants(self, node):
+        def add_constant(t, value):
+            assert t in self.constants
+            if not value in self.constants[t]:
+                self.constants[t].append(value)
+            return
+
+        self.constants = dict()
+        for t in POSSIBLE_TYPES:
+            self.constants[t] = list()
 
         def visit_all_attr(node):
             if not hasattr(node, '__dict__'):
                 return
+
             if isinstance(node, ast.Num):
                 if isinstance(node.n, int):
-                    self.int_constants.add(node.n)
+                    add_constant(int, node.n)
+                    add_constant(float, node.n)
+                elif isinstance(node.n, float):
+                    add_constant(float, node.n)
                 return
+            elif isinstance(node, ast.Str):
+                add_constant(str, node.s)
+                return
+            elif isinstance(node, ast.List):
+                add_constant(list, eval(compile(ast.Expression(body=node), '', mode='eval')))
+                return
+            elif isinstance(node, ast.Tuple):
+                add_constant(tuple, eval(compile(ast.Expression(body=node), '', mode='eval')))
+                return
+
             node_vars = vars(node)
             for k in node_vars:
                 if isinstance(node_vars[k], list):
@@ -153,8 +178,8 @@ class Profiler(ast.NodeTransformer):
                     visit_all_attr(node_vars[k])
 
         visit_all_attr(node)
-        return self.int_constants
-    """
+        return self.constants
+
 
     def instrument(self, sourcefile, inst_sourcefile, function):
         def get_source(path):
@@ -176,9 +201,9 @@ class Profiler(ast.NodeTransformer):
                 function_node = stmt
                 break
         assert function_node
-        """
-        self.collect_int_constants(function_node)
-        """
+
+        self.collect_constants(function_node)
+
         self.visit(function_node)
         total_branches = {
             k: None
