@@ -71,6 +71,12 @@ class _type:
             tmp = []
             for i in self.elem:
                 tmp.append(i.get())
+
+            if len(tmp) == 0:
+                selected = random.choice([0, 0.0, '', 'a', True, None])
+                if selected:
+                    tmp.append(selected)
+
             return tmp
         elif self.this == tuple:
             tmp = ()
