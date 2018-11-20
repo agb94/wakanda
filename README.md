@@ -16,3 +16,31 @@ This is a test data generation tool for python functions.
 ```
 python main.py [target_file] [function_name]
 ```
+
+## Example
+
+Command:
+```bash
+$ python main.py python-functions/case4.py case4
+```
+
+Output:
+```
+INPUT GENERATOR for python-functions/case4.py
+Start type search.......
+6 type candidates found.
+
+Start value search......
+1/4 branches have been covered while searching types.
+4/4 branches have been covered.
+
+RESULT
+1T: (0,)
+1F: ('Hello',)
+2T: ('Hello',)
+2F: ('Hell',)
+Done.
+============================================
+```
+
+Wow!
