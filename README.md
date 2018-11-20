@@ -7,7 +7,7 @@ This is a test data generation tool for python functions.
 - [Presentation Slide](https://docs.google.com/presentation/d/1iRmCP_75RIqYQPrPJanCdP1vM58Z6dy_SdoepdzB-ec/edit?usp=sharing)
 
 ## Contributors
-- Gabin An, School of Computing, KAIST
+- [Gabin An](https://coinse.kaist.ac.kr/members/gabin/), School of Computing, KAIST
 - Jisu Ok, School of Computing, KAIST
 - Sungbin Jo, School of Computing, KAIST
 
