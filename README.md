@@ -1,7 +1,7 @@
 # wakanda
 
-## What is this?
-This is a test data generation tool for python functions.
+## What is this tool for?
+Wakanda is a tool that automatically generates test data for python functions.
 
 - [Idea Pitching](https://docs.google.com/presentation/d/1dwXjVG7EZPdVwyf-Sq6OzR8X9T0t5ikjcxqLYsk4RAQ/edit?usp=sharing)
 - [Presentation Slide](https://docs.google.com/presentation/d/1iRmCP_75RIqYQPrPJanCdP1vM58Z6dy_SdoepdzB-ec/edit?usp=sharing)
