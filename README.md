@@ -1,6 +1,6 @@
 # wakanda
 
-## What is this tool for?
+## What is Wakanda?
 Wakanda is a tool that automatically generates test data for python functions.
 
 - [Idea Pitching](https://docs.google.com/presentation/d/1dwXjVG7EZPdVwyf-Sq6OzR8X9T0t5ikjcxqLYsk4RAQ/edit?usp=sharing)
