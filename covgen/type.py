@@ -2,6 +2,10 @@ from .utils import get_index_or_used_args
 from copy import deepcopy
 import random
 
+from .dsu import dsu
+
+mydsu = dsu()
+
 # POSSIBLE_TYPES = [bool, int, float, str, list, tuple, type(None)]
 POSSIBLE_TYPES = [bool, int, float, str, list, tuple]
 TYPE_PRIORITY = {bool: 1, int: 2, str: 3, tuple: 4, list: 4, float: 5}
@@ -60,9 +64,9 @@ class _type:
         #     return self.val
         assert self.this in POSSIBLE_TYPES
         if self.this == int:
-            return random.choice([-100, -10, 0, 10, 100])
+            return random.choice([0, random.randint(1, 10), 0 - random.randint(1, 10)])
         elif self.this == float:
-            return random.choice([0.01, 0.00, -0.001, 0.123])
+            return random.choice([random.random(), 0.00, 0 - random.random()])
         elif self.this == bool:
             return random.choice([False, True])
         elif self.this == str:
@@ -79,6 +83,9 @@ class _type:
             return tmp
         elif self.this == type(None):
             return None
+
+    def get_type_inchar(self):
+        return self.this
 
     def add(self, t):
         assert(self.this in [list, tuple])
@@ -115,11 +122,38 @@ class _type:
         error_type, error_info = error_result
         
         curr_types = types
-
+        curr_type_in_char = [i.get_type_inchar() for i in curr_types]
+        # print('curr_types: ', curr_type_in_char)
         # Case1: TypeError or MyError
         if error_type == TypeError or error_type == MyError:
             lineno, types = error_info
             suspicous_inputs = get_index_or_used_args(runner.function, line_and_vars[lineno])
+            # print('types: ', types)
+            # print('line and args: ', line_and_vars[lineno], lineno)
+            # print('types: ', types)
+            '''
+            changed
+            '''
+            unfit_ele = []
+            type_temp = deepcopy(types)
+            for sus_input in suspicous_inputs:
+                if curr_type_in_char[sus_input] in type_temp:
+                    type_temp.remove(curr_type_in_char[sus_input])
+                    no_ele = {sus_input: curr_type_in_char[sus_input]}
+                    mydsu.wrapped_dsu_find(sus_input, curr_type_in_char[sus_input])
+                    unfit_ele.append(no_ele)
+
+            if len(unfit_ele) > 1:
+                temp_ele = unfit_ele[0]
+                for i, i_ele in enumerate(unfit_ele):
+                   if i >= 1:
+                        mydsu.wrapped_dsu_union(
+                            list(i_ele.keys())[0], list(i_ele.values())[0], 
+                            list(temp_ele.keys())[0], list(temp_ele.values())[0]
+                        )
+            '''
+            end changed
+            '''
             if suspicous_inputs and random.random() < 0.8:
                 i = random.choice(suspicous_inputs)
             else:
@@ -128,8 +162,9 @@ class _type:
                 # It might be a subscription error. So, we change the type into sequence types.
                 curr_types[i] = curr_types[i].recursively_change_type(types[0], [str, list, tuple])
             else:
-                curr_types[i] = curr_types[i].recursively_change_type(random.choice(types), types)
+                curr_types[i] = curr_types[i].recursively_change_type(random.choice(types), POSSIBLE_TYPES)
                 #curr_types[i] = cls.get_random(types)
+
         # Case2: IndexError
         elif error_type == IndexError:
             lineno, indexes = error_info
@@ -163,8 +198,16 @@ class _type:
         return cls(random.choice(candidates))
 
     @classmethod
-    def search(cls, runner, num_args: int, line_and_vars: dict):
+    def search(cls, runner, num_args: int, line_and_vars: dict, type_candidates: list):
         curr_types = [cls.get_random() for i in range(num_args)]
+        # 在并查集及以搜索过的类型里找，找到就直接退出
+        if curr_types in type_candidates:
+            return []
+        for i, i_type in enumerate(curr_types):
+            for j, j_type in enumerate(curr_types):
+                if j > i:
+                    if mydsu.wrapped_dsu_find(i, i_type.this) == mydsu.wrapped_dsu_find(j, j_type.this):
+                        return []
         while True:
             success, result = runner.run(deepcopy([t.get() for t in curr_types]))
             if success:
