@@ -48,7 +48,7 @@ class CovResult:
 class Runner:
     def __init__(self, function, total_branches, timeout=20):
         self.function = function
-        self.total_branches = total_branches
+        self.total_branches = deepcopy(total_branches)
         self.timeout = timeout
 
     def run(self, input_value, timeout=None):
@@ -67,10 +67,12 @@ class Runner:
         except Exception as e:
             if type(e) is TypeError:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
+                # print(exc_type, exc_value, exc_traceback)
                 for elem in traceback.format_exception(exc_type, exc_value, exc_traceback):
                     if self.function.__name__ in elem:
                         lineno = int(elem.split(',')[1].strip().split()[-1])
                         break
+                
                 types = list(filter(lambda s: "{}".format(s.__name__) in str(exc_value), POSSIBLE_TYPES))
                 return (False, (TypeError, (lineno, types)))
             elif type(e) is IndexError:
@@ -90,8 +92,10 @@ class Runner:
                         break
                 type_a = _type.str_to_type_class(str(e.type_a).split("'")[1])
                 type_b = _type.str_to_type_class(str(e.type_b).split("'")[1])
+                # print('my error ', [type_a, type_b])
                 return (False, (MyError, (lineno, [type_a, type_b])))
             else:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
                 return (False, (type(e), e))
         cov_results = CovResult.read()
         for cov_result in cov_results:
@@ -99,3 +103,13 @@ class Runner:
             if branch[0] > 0 and not self.total_branches[branch]:
                 self.total_branches[branch] = tuple(input_value)
         return (True, cov_results)
+
+    def clear_total_branch(self):
+        for branch in self.total_branches:
+            self.total_branches[branch] = None
+
+    def total_branch(self):
+        return self.total_branches
+
+    def set_total_branch(self, to_branch):
+        self.total_branches = deepcopy(to_branch)

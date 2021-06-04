@@ -11,10 +11,17 @@ import os
 import random
 import sys
 
+import math
+import time
+import numpy as np
+
+from covgen.dsu import dsu
+
 def next_target(branches, cannot_cover):
     not_covered = list(
         filter(lambda b: not b[1] and not b[0] in cannot_cover,
                branches.items()))
+    # print('\nnot covererd: ', not_covered)
     if not_covered:
         return not_covered[0][0]
     else:
@@ -35,10 +42,17 @@ def main(args):
         'inst_' + os.path.basename(args.sourcefile))
     function_node, total_branches = profiler.instrument(
         args.sourcefile, inst_sourcefile, args.function)
+    
+    print('total branches: ', total_branches)
+
+    # 找到每个条件判断之间的依赖关系
     cfg = get_cfg(function_node, profiler.branches)
+    print(cfg)
+
+    # do not work in windows
     target_module = importlib.import_module(os.path.splitext(inst_sourcefile)[0].replace('/', '.'))
     target_function = target_module.__dict__[args.function]
-    
+
     # Initialize Function Runner
     runner = Runner(target_function, total_branches, timeout=20)
 
@@ -46,121 +60,141 @@ def main(args):
     print("Start type search.......")
     num_args = len(function_node.args.args)
     type_candidates = list()
+    print('type search limit: ', args.type_search_limit)
+    t1 = time.time()
+    
     for i in range(args.type_search_limit):
-        types = _type.search(runner, num_args, profiler.line_and_vars)
-        if types not in type_candidates:
+        types = _type.search(runner, num_args, profiler.line_and_vars, type_candidates)
+        if types and types not in type_candidates:
             type_candidates.append(types)
     type_candidates.sort()
     type_candidates = type_candidates[:args.num_type_candidates]
     print("{} type candidates found.".format(len(type_candidates)))
     print()
+    
+    print('run time: %fs'%(time.time() - t1))
 
     # Search Input Value with determined input type
     print("Start value search......")
-    
+
+    total_branches = deepcopy(runner.total_branch())
     print("{}/{} branches have been covered while searching types.".format(
         len(list(filter(lambda v: v, total_branches.values()))),
         len(total_branches)))
-    cannot_cover = set()
-    target_branch = next_target(total_branches, cannot_cover)
+    
+    all_target_branch = [i[0] for i in total_branches.items()]
+
+    total_branches = clear_total_branches(total_branches)
+    runner.clear_total_branch()
+
+    # todo: 加入类别打分
+
     invalid_types = []
-    while target_branch:
-        covered = False
-        for types in type_candidates:
-            
-            if types in invalid_types:
-                continue
+    ans_values, ans_covered = [], 0
+    count = 0
+    random.shuffle(type_candidates)
+    for types in type_candidates:
+        if types in invalid_types:
+            continue
+        invalid_flag = False
+        values, min_fitness = generate_parent(types, all_target_branch, cfg, profiler, runner)
+        
+        runner.clear_total_branch()
+        success, result = runner.run(values)
 
-            # Initialize
-            min_fitness = sys.maxsize
-            min_fitness_vals = None
+        '''
+        print('root selected: ', values)
+        print("{}/{} branches have been covered".format(
+            len(list(filter(lambda v: v, runner.total_branch().values()))),
+            len(total_branches)))
+        print(runner.total_branch())
+        '''
+        not_covered = list(filter(lambda v: v[1] == None, runner.total_branch().items()))
+        total_branches = deepcopy(runner.total_branch())
 
-            # Select best initial input among the input candidates
-            for i in range(args.num_input_candidates):
-                vals = initializer(types, profiler.constants)
-                
-                # for the first attempt
-                if i == 0:
-                    dependencies = cfg[target_branch[0]]
-                    for branch in reversed(dependencies):
-                        if total_branches[branch] and _type.check(types, total_branches[branch]):
-                            vals = total_branches[branch]
-                
-                success, result = runner.run(vals)
+        type_res, type_fit = [], []
+        type_res.append(values)
+        type_fit.append(min_fitness)
+
+        t = 100
+        delta = 0.97
+        threshold = 0.5
+        
+        while not_covered and t > threshold:
+            neighbours = get_neighbours(deepcopy(values), 1, args.float_amplitude)
+            random.shuffle(neighbours)
+            neighbours = neighbours[:args.neighbours_limit]
+            temp_vals, temp_fits = [], []
+            for neighbour in neighbours:
+                if neighbour == values:
+                    continue
+                success, result = runner.run(neighbour)
                 if not success:
-                    continue
-                fit = get_fitness(cfg, target_branch, result)
-                if fit < min_fitness:
-                    min_fitness, min_fitness_vals = fit, vals
-
-            if args.verbose:
-                print("{}\t{}\t{}".format(target_branch, [str(t) for t in types], str(min_fitness_vals)))
-            
-            if not min_fitness_vals:
-                continue
-            
-            # Start searching
-            count = 0
-            
-            while not covered and not types in invalid_types and count < args.value_search_limit:
-                better_neighbour_found = False
-                neighbours = get_neighbours(deepcopy(min_fitness_vals), 1, args.float_amplitude)
-                random.shuffle(neighbours)
-                neighbours = neighbours[:args.neighbours_limit]
-                vals, fits = [], []
-                for v in neighbours:
-                    if v == min_fitness_vals:
-                        continue
-                    success, result = runner.run(v)
-                    if not success:
-                        error_type, error_info = result
-                        if error_type == TypeError or error_type == MyError:
-                            invalid_types.append(types)
-                            break
-                        continue
-                    fit = get_fitness(cfg, target_branch, result)
-                    vals.append(v)
-                    fits.append(fit)
-                    if total_branches[target_branch]:
-                        print("{}/{} branches have been covered.".format(
-                            len(list(filter(lambda v: v, total_branches.values()))),
-                            len(total_branches)))
-                        covered = True
+                    error_type, error_info = result
+                    if error_type == TypeError or error_type == MyError:
+                        invalid_types.append(types)
+                        invalid_flag = True
+                        print('invalid types!')
                         break
-                
-                count += 1
-
-                # Random Ascent
-                if fits and vals and min(fits) <= min_fitness:
-                    best_neighbour_index = random.choice(list(map(lambda t: t[0], filter(lambda t: t[1] == min(fits), enumerate(fits)))))
-                    min_fitness = fits[best_neighbour_index]
-                    min_fitness_vals = vals[best_neighbour_index]
-                    if args.verbose:
-                        print("best:", min_fitness, min_fitness_vals)
-                else:
                     continue
+                fit = 0
+                for target in not_covered:
+                    fit += get_fitness(cfg, target[0], result)
+                temp_vals.append(neighbour)
+                temp_fits.append(fit / len(not_covered))
 
-            # Check whether the search succeeded
-            # If covered, stop searching a value for the branch
-            if covered:
+            if invalid_flag:
                 break
 
-        # If the branch hasn't been covered for all candidate types, stop searching
-        if not covered:
-            cannot_cover.add(target_branch)
+            if temp_fits and temp_vals:
+                best_neighbour_idx = random.choice(list(map(lambda t: t[0], 
+                        filter(lambda t: t[1] == min(temp_fits), enumerate(temp_fits)))))
+                if min(temp_fits) <= min_fitness:
+                    min_fitness = temp_fits[best_neighbour_idx]
+                    values = temp_vals[best_neighbour_idx]
+                else:
+                    delta_f = 0 - abs(min(temp_fits) - min_fitness)
+                    ran = random.uniform(0, 1)
+                    if ran < math.exp(-delta_f/t):
+                        min_fitness = temp_fits[best_neighbour_idx]
+                        values = temp_vals[best_neighbour_idx]
+                        if args.verbose:
+                            print("best:", min_fitness, values)
+                    else:
+                        continue
+                t *= delta
+            runner.clear_total_branch()
+            for val in type_res:
+                runner.run(val)
+            runner.run(values)
+            ori_len = len(not_covered)
+            not_covered = list(filter(lambda v: v[1] == None, runner.total_branch().items()))
+            if len(not_covered) < ori_len:
+                type_res.append(values)
+                type_fit.append(min_fitness)
 
-        # Change the target branch
-        target_branch = next_target(total_branches, cannot_cover)
+            count += 1
 
-    # Print Result
-    print()
-    print("RESULT")
+        if len(not_covered) == 0:
+            print('found!')
+            ans_values = type_res
+            ans_covered = len(all_target_branch) - len(not_covered)
+            break
+        else:
+            if len(all_target_branch) - len(not_covered) > ans_covered:
+                ans_covered = len(all_target_branch) - len(not_covered)
+                ans_values = type_res
+
+        if count >= args.value_search_limit:
+            break
+
+    print('Search Over!')
+    # Print Results
+    for val in ans_values:
+        runner.run(val)
+    total_branches = runner.total_branch()
     num_branch = len(total_branches)
-    if (num_branch % 2) != 0:
-        raise Exception("Something wrong in total_branches")
-    num_branch = int(num_branch / 2)
-
-    for n in range(1, num_branch+1):
+    for n in range(1, int(num_branch / 2) + 1):
         branch_T = (n, True)
         if total_branches[branch_T]:
             #test_input_str = ', '.join(map(lambda i: str(i), total_branches[branch_T]))
@@ -175,8 +209,39 @@ def main(args):
         else:
             print("{}: -".format(str(n)+'F'))
 
-    print("Done.")
-    print("============================================")
+    print('found values covered %d branches' % ans_covered)
+    print(ans_values)
+    return ans_values
+
+
+def generate_parent(types, all_target_branch, cfg, profiler, runner):
+    values = []
+    fits = []
+    for i in range(args.num_input_candidates):
+        vals = initializer(types, profiler.constants)
+        if vals not in values:
+            success, result = runner.run(vals)
+            if not success:
+                continue
+            values.append(vals)
+            fit = 0
+            total_num = len(all_target_branch)
+            for target in all_target_branch:
+                fit += get_fitness(cfg, target, result)
+            fits.append(fit / total_num)
+    res = np.array(fits)
+    res_index = np.argsort(res)
+    res = res[res_index]
+    values_ = np.array(values)
+    values_ = values_[res_index]
+    return values_.tolist()[0], res[0]
+    
+
+def clear_total_branches(total_branches):
+    temp = deepcopy(total_branches)
+    for branch in temp:
+        total_branches[branch] = None
+    return total_branches
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Coverage Measurement Tool')
