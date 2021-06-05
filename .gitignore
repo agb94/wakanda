@@ -99,4 +99,4 @@ ENV/
 
 # mypy
 .mypy_cache/
-python-functions/inst_string3.py
+python-functions/

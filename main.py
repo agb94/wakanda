@@ -1,3 +1,4 @@
+from numpy.lib.function_base import kaiser
 from covgen.runner import Runner
 from covgen.profiler import Profiler
 from covgen.control_dependency_analyzer import get_cfg
@@ -17,21 +18,19 @@ import numpy as np
 
 from covgen.dsu import dsu
 
-def next_target(branches, cannot_cover):
-    not_covered = list(
-        filter(lambda b: not b[1] and not b[0] in cannot_cover,
-               branches.items()))
-    # print('\nnot covererd: ', not_covered)
-    if not_covered:
-        return not_covered[0][0]
-    else:
-        return None
-
 def initializer(input_types, constants):
     values = [t.get() for t in input_types]
     for i, value in enumerate(values):
         values[i] = random.choice(constants[type(value)] + [value])
     return values
+
+
+def get_keys(types):
+    res = ''
+    for item in types:
+        res += str(item)
+    return res
+
 
 def main(args):
     print("INPUT GENERATOR for " + args.sourcefile)
@@ -87,13 +86,37 @@ def main(args):
     total_branches = clear_total_branches(total_branches)
     runner.clear_total_branch()
 
-    # todo: 加入类别打分
+    type_score_dict_item = {}
+    type_score_dict = {}
+    print('initialized score = %d' % len(all_target_branch))
+    for types in type_candidates:
+        for type_item in types:
+            type_score_dict_item.update({str(type_item): len(all_target_branch)})
+    score = 0
+    for types in type_candidates:
+        keys = ''
+        for type_item in types:
+            score += type_score_dict_item[str(type_item)]
+            keys += str(type_item)
+        type_score_dict.update({keys: score})
+
+    print('initialized type score: ', type_score_dict_item)
 
     invalid_types = []
     ans_values, ans_covered = [], 0
-    count = 0
-    random.shuffle(type_candidates)
-    for types in type_candidates:
+    i, n, count = 0, 0, 0
+    all_len = len(deepcopy(type_candidates))
+    while n < all_len:
+
+        types = deepcopy(type_candidates[i])
+        type_candidates.remove(types)
+        type_score_dict.pop(get_keys(types))
+
+        print('searching types: ')
+        for type_item in types:
+           print(type_item.this)
+        n += 1
+
         if types in invalid_types:
             continue
         invalid_flag = False
@@ -101,7 +124,6 @@ def main(args):
         
         runner.clear_total_branch()
         success, result = runner.run(values)
-
         '''
         print('root selected: ', values)
         print("{}/{} branches have been covered".format(
@@ -125,6 +147,7 @@ def main(args):
             random.shuffle(neighbours)
             neighbours = neighbours[:args.neighbours_limit]
             temp_vals, temp_fits = [], []
+            runner.clear_total_branch()
             for neighbour in neighbours:
                 if neighbour == values:
                     continue
@@ -163,6 +186,7 @@ def main(args):
                     else:
                         continue
                 t *= delta
+
             runner.clear_total_branch()
             for val in type_res:
                 runner.run(val)
@@ -181,13 +205,40 @@ def main(args):
             ans_covered = len(all_target_branch) - len(not_covered)
             break
         else:
-            if len(all_target_branch) - len(not_covered) > ans_covered:
+            if len(all_target_branch) - len(not_covered) >= ans_covered:
                 ans_covered = len(all_target_branch) - len(not_covered)
                 ans_values = type_res
-
+        
         if count >= args.value_search_limit:
             break
+        
+        type_score = len(not_covered)
 
+        # print('type score = %d' % type_score)
+
+        for type_item in types:
+            type_score_dict_item[str(type_item)] = (type_score + type_score_dict_item[str(type_item)]) / 2
+        
+        print(type_score_dict_item)
+
+        temp_score, score = [], 0
+        for types in type_candidates:
+            keys = get_keys(types)
+            for type_item in types:
+                score += type_score_dict_item[str(type_item)]
+            type_score_dict[keys] = min(type_score_dict[keys], score)
+            if score >type_score_dict[keys]:
+                ran = random.uniform(0, 1)
+                if ran <= 0.2:
+                    type_score_dict[keys] = score
+            temp_score.append(type_score_dict[keys])
+        array_temp_score = np.array(temp_score)
+        type_candidates_np = np.array(type_candidates)[array_temp_score.argsort()]
+
+        type_candidates = type_candidates_np.tolist()
+        x = random.choice(list(filter(lambda v: array_temp_score[v[0]] == min(array_temp_score), enumerate(type_candidates))))
+        i = x[0]
+    
     print('Search Over!')
     # Print Results
     for val in ans_values:
@@ -209,10 +260,10 @@ def main(args):
         else:
             print("{}: -".format(str(n)+'F'))
 
-    print('found values covered %d branches' % ans_covered)
+    print('found values covering %d branches' % ans_covered)
     print(ans_values)
     return ans_values
-
+    
 
 def generate_parent(types, all_target_branch, cfg, profiler, runner):
     values = []
