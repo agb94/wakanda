@@ -82,8 +82,8 @@ def main(args):
 
     # For testing & comparing
     
-    for i in range(100):
-        ans_values = value_search(deepcopy(type_candidates), deepcopy(total_branches), runner, cfg, profiler)
+    #for i in range(100):
+    #    ans_values = value_search(deepcopy(type_candidates), deepcopy(total_branches), runner, cfg, profiler)
 
 
 def value_search(type_candidates, total_branches, runner, cfg, profiler, islog=True):
