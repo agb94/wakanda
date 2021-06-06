@@ -11,6 +11,10 @@ def classify_triangle(a, b, c):
     assert type(b) == int or type(b) == float
     assert type(c) == int or type(c) == float
     # Sort the sides so that a <= b <= c
+
+    if a <= 0 or b <= 0 or c <= 0:
+        return TriangleType.INVALID
+
     if a > b:
         tmp = a
         a = b

@@ -5,6 +5,7 @@ import random
 # returns 'neighbour' of given input value with ragne 'n' (+/- n)
 # ex) get_neighbours([3, 'e'], 1) = [[2, 'd'], [2, 'e'], [2, 'f'], [3, 'd'], [3, 'e'], [3, 'f'], [4, 'd'], [4, 'e'], [4, 'f']]
 def get_neighbours(vals, n, float_amplitude):
+
     assert type(n) is int
     assert n > 0
 
@@ -21,7 +22,7 @@ def get_neighbours(vals, n, float_amplitude):
         elif type(v) is float:
             res = []
             for i in range(-n, n+1):
-                res.append([v + i*float_amplitude])
+                res.append([v + i*random.uniform(0, 1)])
             return res
 
         elif type(v) is str and len(v) == 1:

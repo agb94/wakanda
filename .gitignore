@@ -102,3 +102,7 @@ ENV/
 python-functions/
 
 .cov
+covgen/wrapper_new.py
+test.py
+search_value_modified_anscovered.txt
+search_value_modified_time.txt

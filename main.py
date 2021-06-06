@@ -18,7 +18,7 @@ import numpy as np
 def initializer(input_types, constants):
     values = [t.get() for t in input_types]
     for i, value in enumerate(values):
-        values[i] = random.choice(constants[type(value)] + [value])
+        values[i] = random.choice([value])
     return values
 
 
@@ -45,7 +45,7 @@ def main(args):
     cfg = get_cfg(function_node, profiler.branches)
     print(cfg)
 
-    # do not work in windows
+    # Linux
     target_module = importlib.import_module(os.path.splitext(inst_sourcefile)[0].replace('/', '.'))
     target_function = target_module.__dict__[args.function]
 
@@ -78,10 +78,20 @@ def main(args):
         len(list(filter(lambda v: v, total_branches.values()))),
         len(total_branches)))
 
-    all_target_branch = [i[0] for i in total_branches.items()]
+    ans_values = value_search(deepcopy(type_candidates), total_branches, runner, cfg, profiler, islog=False)
 
+    # For testing & comparing
+    
+    for i in range(100):
+        ans_values = value_search(deepcopy(type_candidates), deepcopy(total_branches), runner, cfg, profiler)
+
+
+def value_search(type_candidates, total_branches, runner, cfg, profiler, islog=True):
+
+    all_target_branch = [i[0] for i in total_branches.items()]
     runner.clear_total_branch()
 
+    # Set original score for each type combination
     type_score_dict_item, type_score_dict = {}, {}
     for types in type_candidates:
         for type_item in types:
@@ -94,22 +104,22 @@ def main(args):
             keys += str(type_item)
         type_score_dict.update({keys: score})
 
-    # print('initialized type score: ', type_score_dict_item)
-
     ans_values, ans_covered = [], 0
     i, n, count = 0, 0, 0
     all_len = len(deepcopy(type_candidates))
-    while n < all_len:
 
+    time_value_search_begin = time.time()
+    # Searching
+    while n < all_len:
         types = deepcopy(type_candidates[i])
         type_candidates.remove(types)
         type_score_dict.pop(get_keys(types))
-
+        '''
         print('searching types: ')
         for type_item in types:
             print(type_item.this)
         n += 1
-
+        '''
         invalid_flag = False
         values, min_fitness = generate_parent(types, profiler, runner)
 
@@ -128,10 +138,11 @@ def main(args):
         type_res.append(values)
         type_fit.append(min_fitness)
 
-        t = 100
-        delta = 0.97
-        threshold = 0.5
+        # print(values)
 
+        t = 100
+        delta = 0.98
+        threshold = 0.15
         while not_covered and t > threshold:
             neighbours = get_neighbours(deepcopy(values), 1, args.float_amplitude)
             random.shuffle(neighbours)
@@ -146,7 +157,7 @@ def main(args):
                     error_type, error_info = result
                     if error_type == TypeError or error_type == MyError:
                         invalid_flag = True
-                        print('invalid types!')
+                        # print('invalid types!')
                         break
                     continue
                 fit = 0
@@ -172,8 +183,6 @@ def main(args):
                     if ran < math.exp(-delta_f / t):
                         min_fitness = temp_fits[best_neighbour_idx]
                         values = temp_vals[best_neighbour_idx]
-                        if args.verbose:
-                            print("best:", min_fitness, values)
                 t *= delta
 
             runner.clear_total_branch()
@@ -189,7 +198,7 @@ def main(args):
             count += 1
 
         if len(not_covered) == 0:
-            print('found!')
+            # print('found!')
             ans_values = type_res
             ans_covered = len(all_target_branch) - len(not_covered)
             break
@@ -204,11 +213,12 @@ def main(args):
         for type_item in types:
             type_score_dict_item[str(type_item)] = (type_score + type_score_dict_item[str(type_item)]) / 2
 
-        print(type_score_dict_item)
-
-        temp_score, score = [], 0
+        # print(type_score_dict_item)
+        # Update scores
+        temp_score = []
         for types in type_candidates:
             keys = get_keys(types)
+            score = 0
             for type_item in types:
                 score += type_score_dict_item[str(type_item)]
             type_score_dict[keys] = min(type_score_dict[keys], score)
@@ -217,14 +227,17 @@ def main(args):
                 if ran <= 0.2:
                     type_score_dict[keys] = score
             temp_score.append(type_score_dict[keys])
-        array_temp_score = np.array(temp_score)
 
+        array_temp_score = np.array(temp_score)
         type_candidates = np.array(type_candidates)[array_temp_score.argsort()].tolist()
+        
         i = random.choice(list(map(lambda v: v[0], filter(lambda v: array_temp_score[v[0]] == min(array_temp_score),
                                                           enumerate(type_candidates)))))
 
-    print('Search Over!')
+    time_value_search = time.time() - time_value_search_begin
+
     # Print Results
+    print('Search Over!')
     runner.clear_total_branch()
     for val in ans_values:
         runner.run(val)
@@ -247,12 +260,21 @@ def main(args):
 
     print('found values covering %d branches' % ans_covered)
     print(ans_values)
+
+    if islog:
+        f1 = open('search_value_modified_anscovered.txt', 'a+')
+        f2 = open('search_value_modified_time.txt', 'a+')
+        f1.write(str(ans_covered) + ' ' + str(num_branch) + ' ' + str(len(ans_values)) + '\n')
+        f2.write(str(time_value_search) + '\n')
+        f1.close()
+        f2.close()
+
     return ans_values
 
 
 def generate_parent(types, profiler, runner):
-    values = []
-    fits = []
+    # Generate the first case to begin with
+    values, fits = [], []
     for i in range(args.num_input_candidates):
         vals = initializer(types, profiler.constants)
         if vals not in values:
@@ -266,8 +288,8 @@ def generate_parent(types, profiler, runner):
     res = np.array(fits)
     res_index = np.argsort(res)
     res = res[res_index]
-    values_ = np.array(values)[res_index]
-    return values_.tolist()[0], res[0]
+    val = np.array(values)
+    return random.choice([values[res_index[0]], val[res_index[0]].tolist()]), res[0]
 
 
 if __name__ == "__main__":
